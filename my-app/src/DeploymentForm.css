@@ -1,0 +1,47 @@
+/* Custom color variables */
+body {
+    --primary-color: #007bff;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --form-background-color: #f8f9fa;
+    --label-color: #333;
+    --input-border-color: #ced4da;
+    --error-color: #dc3545;
+  }
+  
+  /* Example styles */
+  .form-container {
+    background-color: var(--form-background-color);
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  label {
+    color: var(--label-color);
+    font-weight: bold;
+  }
+  
+  .form-control {
+    border: 1px solid var(--input-border-color);
+  }
+  
+  .text-danger {
+    color: var(--error-color);
+  }
+  
+  .btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+  
+  .btn-success {
+    background-color: var(--success-color);
+    border-color: var(--success-color);
+  }
+  
+  .btn-danger {
+    background-color: var(--danger-color);
+    border-color: var(--danger-color);
+  }
+  
