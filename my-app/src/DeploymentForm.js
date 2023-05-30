@@ -7,12 +7,15 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
 // import { fetch } from 'whatwg-fetch';  // Fetch API
+import { createBrowserHistory } from 'history';
 
 
 
 const DeploymentForm = () => {
 
   const [microservices, setMicroservices] = useState([]);
+
+  const history = createBrowserHistory();
 
   const handleAddMicroservice = () => {
     setMicroservices([
@@ -29,7 +32,7 @@ const DeploymentForm = () => {
   };
 
   // Define validation schema using Yup
-
+  /*
   const validationSchema = Yup.object().shape({
     applicationName: Yup.string().required('Application Name is required'),
     microservices: Yup.array().of(
@@ -42,7 +45,8 @@ const DeploymentForm = () => {
       })
     ),
   });
-
+  */
+ /*
   const validateUniqueServiceNames = (values) => {
     const serviceNames = values.microservices.map((microservice) => microservice.serviceName);
     const uniqueServiceNames = new Set(serviceNames);
@@ -51,15 +55,15 @@ const DeploymentForm = () => {
     }
     return undefined;
   };
-
+  */
   const sendForm = async (values) => {
     try {
       const response = await axios.post('http://localhost:8000/api/deployment/', values);
   
       if (response.status === 200) {
         toast.success('Form submitted successfully');
+        history.push('http://localhost:8000/api/deployment/');
         // eslint-disable-next-line no-restricted-globals
-        
         return response.data;
       } else {
         throw new Error(`Request failed: ${response.status}`);
@@ -99,17 +103,31 @@ const DeploymentForm = () => {
           microservices: [],
         }}
 
-        validationSchema={validationSchema} // Provide the validation schema to Formik
+        // validationSchema={validationSchema} // Provide the validation schema to Formik
 
-        validate={validateUniqueServiceNames} // Custom validation for unique service names
+        // validate={validateUniqueServiceNames} // Custom validation for unique service names
+
+        onSubmit={(values, { setSubmitting, resetForm }) => {
+          sendForm(values)
+            .then(data => {
+              console.log(data);  // print the response data
+              setSubmitting(false);
+              resetForm();
+            })
+            .catch(error => {
+              console.error('Form submission failed:', error);
+              setSubmitting(false);
+            });
+        }}
         
-
+      /*   
         onSubmit={(values, { setSubmitting }) => {
+          event.preventDefault();
           sendForm(values).then(data => {
               // console.log(data);  // print the response data
               setSubmitting(false);
           });
-      }}
+      }}*/
       
 
         /* onSubmit={async (values, { setSubmitting }) => {
@@ -139,7 +157,7 @@ const DeploymentForm = () => {
           setSubmitting(false);
         }}*/
       >
-        <Form>
+        <Form method="post" action='http://localhost:8000/api/deployment/'>
           {/* Application Information */}
           <div className="row">
             <div className="col-md-6">

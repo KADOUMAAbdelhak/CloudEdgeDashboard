@@ -1,103 +1,200 @@
 <?xml version="1.0"?>
-<!DOCTYPE rdf:RDF [
-    <!ENTITY owl "http://www.w3.org/2002/07/owl#" >
-    <!ENTITY xsd "http://www.w3.org/2001/XMLSchema#" >
-    <!ENTITY rdfs "http://www.w3.org/2000/01/rdf-schema#" >
-    <!ENTITY rdf "http://www.w3.org/1999/02/22-rdf-syntax-ns#" >
-]>
-
 <rdf:RDF xmlns="http://www.example.com/ontology#"
      xml:base="http://www.example.com/ontology"
-     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
      xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:xml="http://www.w3.org/XML/1998/namespace"
      xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
-     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
     <owl:Ontology rdf:about="http://www.example.com/ontology"/>
+    
 
-    <owl:Class rdf:about="#Application">
-        <rdfs:subClassOf rdf:resource="&owl;Thing"/>
-    </owl:Class>
 
-    <owl:Class rdf:about="#Microservice">
-        <rdfs:subClassOf rdf:resource="&owl;Thing"/>
-        <rdfs:subClassOf>
-            <owl:Restriction>
-            <owl:onProperty rdf:resource="#hasMicroserviceName"/>
-            <owl:cardinality rdf:datatype="&xsd;nonNegativeInteger">1</owl:cardinality>
-            </owl:Restriction>
-        </rdfs:subClassOf>
-        <rdfs:subClassOf>
-            <owl:Restriction>
-            <owl:onProperty rdf:resource="#hasImage"/>
-            <owl:minCardinality rdf:datatype="&xsd;nonNegativeInteger">1</owl:minCardinality>
-            </owl:Restriction>
-        </rdfs:subClassOf>
-        <rdfs:subClassOf>
-            <owl:Restriction>
-            <owl:onProperty rdf:resource="#hasReplicas"/>
-            <owl:someValuesFrom rdf:resource="&xsd;positiveInteger"/>
-            </owl:Restriction>
-        </rdfs:subClassOf>
-    </owl:Class>
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Object Properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
 
-    <!-- Application properties -->
-    <owl:DatatypeProperty rdf:about="#hasName">
-        <rdfs:domain rdf:resource="#Application"/>
-        <rdfs:range rdf:resource="&xsd;string"/>
-    </owl:DatatypeProperty>
+    
 
-    <owl:DatatypeProperty rdf:about="#hasVersion">
-        <rdfs:domain rdf:resource="#Application"/>
-        <rdfs:range rdf:resource="&xsd;string"/>
-    </owl:DatatypeProperty>
 
-    <!-- Microservice properties -->
-    <owl:DatatypeProperty rdf:about="#hasMicroserviceName">
-        <rdfs:domain rdf:resource="#Microservice"/>
-        <rdfs:range rdf:resource="&xsd;string"/>
-    </owl:DatatypeProperty>
+    <!-- http://www.example.com/ontology#hasMicroservice -->
 
-    <owl:DatatypeProperty rdf:about="#hasImage">
-        <rdfs:domain rdf:resource="#Microservice"/>
-        <rdfs:range rdf:resource="&xsd;string"/>
-    </owl:DatatypeProperty>
-
-    <owl:DatatypeProperty rdf:about="#hasReplicas">
-        <rdfs:domain rdf:resource="#Microservice"/>
-        <rdfs:range rdf:resource="&xsd;integer"/>
-    </owl:DatatypeProperty>
-
-    <owl:DatatypeProperty rdf:about="#hasCPU">
-        <rdfs:domain rdf:resource="#Microservice"/>
-        <rdfs:range rdf:resource="&xsd;integer"/>
-    </owl:DatatypeProperty>
-
-    <owl:DatatypeProperty rdf:about="#hasMemory">
-        <rdfs:domain rdf:resource="#Microservice"/>
-        <rdfs:range rdf:resource="&xsd;integer"/>
-    </owl:DatatypeProperty>
-
-    <owl:DatatypeProperty rdf:about="#hasReplicas">
-        <rdfs:domain rdf:resource="#Microservice"/>
-        <rdfs:range rdf:resource="&xsd;integer"/>
-    </owl:DatatypeProperty>
-
-    <owl:DatatypeProperty rdf:about="#hasContainerPort">
-        <rdfs:domain rdf:resource="#Microservice"/>
-        <rdfs:range rdf:resource="&xsd;integer"/>
-    </owl:DatatypeProperty>
-
-    <owl:DatatypeProperty rdf:about="#hasServicePort">
-        <rdfs:domain rdf:resource="#Microservice"/>
-        <rdfs:range rdf:resource="&xsd;integer"/>
-    </owl:DatatypeProperty>
-
-    <!-- ... other Microservice properties here ... -->
-
-    <!-- Application to Microservice relationship -->
-    <owl:ObjectProperty rdf:about="#hasMicroservice">
-        <rdfs:domain rdf:resource="#Application"/>
-        <rdfs:range rdf:resource="#Microservice"/>
+    <owl:ObjectProperty rdf:about="http://www.example.com/ontology#hasMicroservice">
+        <rdfs:domain rdf:resource="http://www.example.com/ontology#Application"/>
+        <rdfs:range rdf:resource="http://www.example.com/ontology#Microservice"/>
     </owl:ObjectProperty>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Data properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://www.example.com/ontology#hasCPU -->
+
+    <owl:DatatypeProperty rdf:about="http://www.example.com/ontology#hasCPU">
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://www.example.com/ontology#Microservice"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#integer"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.example.com/ontology#hasContainerPort -->
+
+    <owl:DatatypeProperty rdf:about="http://www.example.com/ontology#hasContainerPort">
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://www.example.com/ontology#Microservice"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#integer"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.example.com/ontology#hasImage -->
+
+    <owl:DatatypeProperty rdf:about="http://www.example.com/ontology#hasImage">
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://www.example.com/ontology#Microservice"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.example.com/ontology#hasMemory -->
+
+    <owl:DatatypeProperty rdf:about="http://www.example.com/ontology#hasMemory">
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://www.example.com/ontology#Microservice"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#integer"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.example.com/ontology#hasMicroserviceName -->
+
+    <owl:DatatypeProperty rdf:about="http://www.example.com/ontology#hasMicroserviceName">
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://www.example.com/ontology#Microservice"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.example.com/ontology#hasName -->
+
+    <owl:DatatypeProperty rdf:about="http://www.example.com/ontology#hasName">
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://www.example.com/ontology#Application"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.example.com/ontology#hasReplicas -->
+
+    <owl:DatatypeProperty rdf:about="http://www.example.com/ontology#hasReplicas">
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://www.example.com/ontology#Microservice"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#positiveInteger"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.example.com/ontology#hasServicePort -->
+
+    <owl:DatatypeProperty rdf:about="http://www.example.com/ontology#hasServicePort">
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://www.example.com/ontology#Microservice"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#integer"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.example.com/ontology#hasVersion -->
+
+    <owl:DatatypeProperty rdf:about="http://www.example.com/ontology#hasVersion">
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://www.example.com/ontology#Application"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Classes
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://www.example.com/ontology#Application -->
+
+    <owl:Class rdf:about="http://www.example.com/ontology#Application">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.example.com/ontology#Microservice -->
+
+    <owl:Class rdf:about="http://www.example.com/ontology#Microservice">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+    </owl:Class>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Individuals
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://www.example.com/ontology#ms1 -->
+
+    <owl:NamedIndividual rdf:about="http://www.example.com/ontology#ms1">
+        <hasCPU rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">512</hasCPU>
+        <hasImage>ms1-image</hasImage>
+        <hasMicroserviceName>ms1</hasMicroserviceName>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.example.com/ontology#ms2 -->
+
+    <owl:NamedIndividual rdf:about="http://www.example.com/ontology#ms2"/>
+    
+
+
+    <!-- http://www.example.com/ontology#myapp -->
+
+    <owl:NamedIndividual rdf:about="http://www.example.com/ontology#myapp">
+        <hasMicroservice rdf:resource="http://www.example.com/ontology#ms1"/>
+        <hasMicroservice rdf:resource="http://www.example.com/ontology#ms2"/>
+        <hasName>myapp</hasName>
+    </owl:NamedIndividual>
 </rdf:RDF>
+
+
+
+<!-- Generated by the OWL API (version 4.5.25.2023-02-15T19:15:49Z) https://github.com/owlcs/owlapi -->
+
