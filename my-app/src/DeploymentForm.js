@@ -34,7 +34,12 @@ const DeploymentForm = () => {
   // Define validation schema using Yup
   
   const validationSchema = Yup.object().shape({
-    applicationName: Yup.string().required('Application Name is required'),
+    applicationName: Yup.string()
+    .required('Application Name is required')
+    .matches(/^[a-zA-Z0-9]+$/, 'Application Name must be one word and consist of alphanumeric characters only.'),
+    applicationVersion: Yup.string()
+    .required('Application Version is required')
+    .matches(/^(\d+\.)?(\d+\.)?(\*|\d+)$/, 'Application Version must follow semantic versioning (x.y.z)'),
     microservices: Yup.array().of(
       Yup.object().shape({
         serviceName: Yup.string().required('Service Name is required'),
@@ -42,18 +47,20 @@ const DeploymentForm = () => {
         replicas: Yup.number().required('Number of Replicas is required').positive('Number of Replicas must be positive').integer('Number of Replicas must be an integer'),
         cpu: Yup.string().required('CPU is required'),
         memory: Yup.string().required('Memory is required'),
+        containerPort: Yup.number().required('Container Port is required').min(1, 'Port number must be between 1 and 65535').max(65535, 'Port number must be between 1 and 65535'),
+        servicePort: Yup.number().required('Service Port is required').min(1, 'Port number must be between 1 and 65535').max(65535, 'Port number must be between 1 and 65535'),
       })
     ),
   });
   
  
-  const validateUniqueServiceNames = (values) => {
-    const serviceNames = values.microservices.map((microservice) => microservice.serviceName);
-    const uniqueServiceNames = new Set(serviceNames);
-    if (serviceNames.length !== uniqueServiceNames.size) {
+  const validateUniqueServiceNames = (value, index, values) => {
+    const serviceNames = values.microservices.map((m) => m.serviceName);
+    const duplicateCount = serviceNames.filter((name) => name === value).length;
+    if (duplicateCount > 1) {
       return 'Each microservice must have a unique service name';
     }
-    return undefined;
+    return;
   };
   
   const sendForm = async (values) => {
@@ -86,7 +93,7 @@ const DeploymentForm = () => {
 
         validationSchema={validationSchema} // Provide the validation schema to Formik
 
-        validate={validateUniqueServiceNames} // Custom validation for unique service names
+        // validate={validateUniqueServiceNames} // Custom validation for unique service names
 
         onSubmit={(values, { setSubmitting, resetForm }) => {
           sendForm(values)
@@ -139,7 +146,7 @@ const DeploymentForm = () => {
 
           {/* Microservices */}
           <FieldArray name="microservices">
-            {({ push, remove }) => (
+            {({ push, remove, form: { values } }) => (
               <>
                 {microservices.map((_, index) => (
                   <div key={index} className="microservice-field">
@@ -148,7 +155,12 @@ const DeploymentForm = () => {
 
                     <div className="mb-3">
                       <label htmlFor={`microservices[${index}].serviceName`} className="form-label">Service Name</label>
-                      <Field name={`microservices[${index}].serviceName`} placeholder="Service Name" className="form-control" />
+                      <Field
+                        validate={(value) => validateUniqueServiceNames(value, index, values)}
+                        name={`microservices[${index}].serviceName`}
+                        placeholder="Service Name"
+                        className="form-control"
+                      />
                       <ErrorMessage name={`microservices[${index}].serviceName`} component="div" className="text-danger" />
                     </div>
 
