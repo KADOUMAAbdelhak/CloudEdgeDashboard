@@ -5,7 +5,7 @@ Developing a cutting-edge management dashboard for microservices-based applicati
 
 ## Frontend
 1. Navigate to the my-app directory:
-''' cd my-app '''
+'cd my-app'
 
 
 
