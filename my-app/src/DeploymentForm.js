@@ -32,7 +32,7 @@ const DeploymentForm = () => {
   };
 
   // Define validation schema using Yup
-  /*
+  
   const validationSchema = Yup.object().shape({
     applicationName: Yup.string().required('Application Name is required'),
     microservices: Yup.array().of(
@@ -45,8 +45,8 @@ const DeploymentForm = () => {
       })
     ),
   });
-  */
- /*
+  
+ 
   const validateUniqueServiceNames = (values) => {
     const serviceNames = values.microservices.map((microservice) => microservice.serviceName);
     const uniqueServiceNames = new Set(serviceNames);
@@ -55,7 +55,7 @@ const DeploymentForm = () => {
     }
     return undefined;
   };
-  */
+  
   const sendForm = async (values) => {
     try {
       const response = await axios.post('http://localhost:8000/api/deployment/', values);
@@ -74,25 +74,6 @@ const DeploymentForm = () => {
     }
   };
 
-  /* const sendForm = async (values) => {
-    try {
-        const response = await axios.post('http://localhost:8000/api/submit-deployment', values);
-
-        if (response.status === 200) {
-            toast.success('Form submitted successfully');
-            return response.data;
-        } else if (response.data && response.data.message) {
-            throw new Error(response.data.message);
-        } else {
-            throw new Error(`Request failed: ${response.status}`);
-        }
-    } catch (error) {
-        console.error('HTTP request failed:', error);
-        toast.error(error.message || 'An error occurred while submitting the form');
-    }
-};*/
-
-
   return (
     <div className="container">
       <h1 className="text-center"> Microservice Deployment Information </h1>
@@ -103,9 +84,9 @@ const DeploymentForm = () => {
           microservices: [],
         }}
 
-        // validationSchema={validationSchema} // Provide the validation schema to Formik
+        validationSchema={validationSchema} // Provide the validation schema to Formik
 
-        // validate={validateUniqueServiceNames} // Custom validation for unique service names
+        validate={validateUniqueServiceNames} // Custom validation for unique service names
 
         onSubmit={(values, { setSubmitting, resetForm }) => {
           sendForm(values)
@@ -119,43 +100,6 @@ const DeploymentForm = () => {
               setSubmitting(false);
             });
         }}
-        
-      /*   
-        onSubmit={(values, { setSubmitting }) => {
-          event.preventDefault();
-          sendForm(values).then(data => {
-              // console.log(data);  // print the response data
-              setSubmitting(false);
-          });
-      }}*/
-      
-
-        /* onSubmit={async (values, { setSubmitting }) => {
-          // Send a POST request to the Django server
-          try {
-              const response = await fetch('http://localhost:8000/api/deployment/', {
-                  method: 'POST', // Here we are specifying that it should be a POST request
-                  headers: {
-                      'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify(values), // Convert the form data to JSON
-              });
-
-              // If the request was successful, you can use the response data
-              if (response.ok) {
-                  const data = await response.json();
-                  console.log(data);
-                  toast.success('Form submitted successfully');
-              } else {
-                  throw new Error(`Request failed: ${response.status}`);
-              }
-          } catch (error) {
-              console.error('HTTP request failed:', error);
-              toast.error('An error occurred while submitting the form');
-          }
-
-          setSubmitting(false);
-        }}*/
       >
         <Form method="post" action='http://localhost:8000/api/deployment/'>
           {/* Application Information */}
