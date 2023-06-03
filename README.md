@@ -30,6 +30,8 @@ If you didn't clone the Repo yet, run the following command in your terminal:
 
 `git submodule update`
 
+`git submodule update --remote`
+
 Change your current directory to the `ApplicationProfileService` directory:
 
 `cd TemplatingLanguageService`
