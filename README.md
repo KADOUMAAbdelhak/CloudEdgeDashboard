@@ -43,17 +43,23 @@ To start the frontend server, Go to the "my-app" directory and run the following
 `cd my-app`
 
 `npm install`
+
 `npm start`
+
 The frontend server will run on `http://localhost:3000`
 
 ### Backend
 
 Open a new Terminal and excute The following commands:
-`cd TemplatingLanguageService`
-`cd myproject`
-`pip install Django`
-`pip install owlready2`
-`python manage.py runserver`
 
+`cd TemplatingLanguageService`
+
+`cd myproject`
+
+`pip install Django`
+
+`pip install owlready2`
+
+`python manage.py runserver`
 
 The Django backend server will run on `http://localhost:8000`.
