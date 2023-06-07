@@ -71,7 +71,9 @@ const DeploymentForm = () => {
           Yup.string()
             .required('Environment variable is required')
             .matches(/^(\w+)=(\w+)$/, 'Environment variable must be in KEY=VALUE format')
-        )
+        ),
+        dependentService: Yup.string()
+          .notOneOf([Yup.ref('serviceName'), null], "A service can't be dependent on itself"),
       })
     ),
   });
@@ -198,7 +200,7 @@ const DeploymentForm = () => {
           <FieldArray validate={validateMicroservices} name="microservices">
             {({ push, remove, form: { values } }) => (
               <>
-                {microservices.map((_, index) => (
+                {values.microservices.map((_, index) => (
                   <div key={index} className="microservice-field">
 
                     <h3> Microservice {index + 1}</h3>
@@ -251,27 +253,57 @@ const DeploymentForm = () => {
                         {({ push, remove }) => (
                           <>
                             {values.microservices[index].environmentVariables.map((_, subIndex) => (
-                              <div key={subIndex}>
+                              <div key={subIndex} className="d-flex align-items-center mb-2">
                                 <Field name={`microservices[${index}].environmentVariables[${subIndex}]`} placeholder="KEY=VALUE" className="form-control"/>
-                                <button type="button" onClick={() => remove(subIndex)}>Remove Variable</button>
+                                <button type="button" onClick={() => remove(subIndex)} className="btn btn-danger ml-2">
+                                  <i className="fas fa-minus-circle"></i>
+                                </button>
                               </div>
                             ))}
-                            <button type="button" onClick={() => push('')}>Add Variable</button>
+                            <button type="button" onClick={() => push('')} className="btn btn-success">
+                              <i className="fas fa-plus-circle"></i> Add Variable
+                            </button>
                           </>
                         )}
                       </FieldArray>
                       <ErrorMessage name={`microservices[${index}].environmentVariables`} component="div" className="text-danger" />
                     </div>
+
+                    {/* Dependent Services */}
+                    <div className="mb-3">
+                      <label htmlFor={`microservices[${index}].dependentService`} className="form-label">Dependent Services</label>
+                      <Field as="select" name={`microservices[${index}].dependentService`} className="form-control">
+                        <option value="">None</option>
+                        {values.microservices.map((microservice, microserviceIndex) => (
+                          index !== microserviceIndex && (
+                            <option key={microserviceIndex} value={microservice.serviceName}>
+                              {microservice.serviceName}
+                            </option>
+                          )
+                        ))}
+                      </Field>
+                      <ErrorMessage name={`microservices[${index}].dependentService`} component="div" className="text-danger" />
+                    </div>
+
                     {/* Add more fields specific to each microservice */}
                     {/* ... */}
 
-                    <button type="button" onClick={() => handleRemoveMicroservice(index)} className="btn btn-danger">
+                    <button type="button" onClick={() => remove(index)} className="btn btn-danger">
                       Remove Microservice
                     </button>
                   </div>
                 ))}
 
-                <button type="button" onClick={handleAddMicroservice} className="btn btn-success">
+                <button type="button" onClick={() => push({
+                                                            serviceName: '',
+                                                            containerImage: '',
+                                                            replicas: '',
+                                                            cpu: '',
+                                                            memory: '',
+                                                            ports: '',
+                                                            environmentVariables: [''],
+                                                          })}
+                                                            className="btn btn-success">
                   Add Microservice
                 </button>
               </>
