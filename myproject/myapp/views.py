@@ -1,8 +1,10 @@
 from django.http import JsonResponse
+from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from owlready2 import get_ontology, World
+from owlready2 import get_ontology
 from owlready2.reasoning import sync_reasoner_hermit
 import json
+import yaml
 
 # This is the file path to your ontology
 ONTOLOGY_FILE_PATH = "file://myapp/ontologies/osr.owl"
@@ -29,8 +31,6 @@ def validate_form_data(form_data):
             ms.hasImage = ms_data['containerImage']
             ms.hasReplicas = ms_data['replicas']
             ms.hasCPU = ms_data['cpu']
-            ms.hasContainerPort = ms_data['containerPort']
-            ms.hasServicePort = ms_data['servicePort']
             ms.hasMemory = ms_data['memory']
             # Add the other attributes here...
             
@@ -59,35 +59,44 @@ received_data = None
 
 @csrf_exempt
 def deployment(request):
-
-    global received_data
-    # Parse the form data
     if request.method == 'POST':
-        # If this is a POST request, store the data for later processing
-        received_data = json.loads(request.body.decode('utf-8'))
-        return JsonResponse({"message": "Data received."}, status=200)
-    
-    # GET METHOD
+        form_data = json.loads(request.body.decode('utf-8'))
+        
+        # Validate form data
+        is_valid, message = validate_form_data(form_data)
+        if is_valid:
+            # If the data is valid, convert it to YAML and return it as a response
+            yaml_data = yaml.dump(form_data)
+            return JsonResponse({"data": yaml_data}, status=200)
+        else:
+            return JsonResponse({"error": message}, status=400)
     elif request.method == 'GET': 
-        try:
-            if received_data is None:
-                # If no data has been received yet, return an error
-                return JsonResponse({"error": "No data has been received yet."}, status=400)
-            else:
-                # If data has been received, validate it
-                is_valid, message = validate_form_data(received_data)
-                if is_valid:
-                    # If the data is valid, print it and return a success message
-                    print(received_data)
-                    return JsonResponse({"message": message, "received_data": received_data}, status=200)
-                else:
-                    # If the data is not valid, return an error message
-                    return JsonResponse({"error": message, "inconsistencies": inconsistencies}, status=400)
-        except Exception as e:
-            # Handle other exceptions
-            return JsonResponse({"error": "The form data is not valid due to ontology inconsistency."}, status=500)
+        return JsonResponse({"error": "GET method not supported for this endpoint."}, status=405)
     else:
-        return JsonResponse({"error": "Invalid request method. Only POST and GET are allowed."}, status=405)
+        return JsonResponse({"error": "Invalid request method. Only POST is allowed."}, status=405)
 
 def home(request):
     return JsonResponse({'info': 'Hello, H K!'}, safe=False)
+
+
+@csrf_exempt
+def handle_yaml(request):
+    global received_data
+    if request.method == 'POST':
+        received_yaml = request.body.decode('utf-8')
+        parsed_data = yaml.safe_load(received_yaml)
+        received_data = parsed_data
+        # Process the parsed data to match the Docker Compose structure...
+        # docker_compose_data = ...
+
+        # Then dump it back to YAML format.
+        # docker_compose_yaml = yaml.safe_dump(docker_compose_data)
+
+        # with open('docker-compose.yaml', 'w') as file:
+            # file.write(docker_compose_yaml)
+
+        return JsonResponse({'message': parsed_data})
+    elif request.method == 'GET':
+        return JsonResponse({'message': received_data}, status=405)
+    else:
+        return JsonResponse({'error': 'Invalid request'}, status=400)
