@@ -1,0 +1,8 @@
+services:
+  ms1:
+    environment:
+    - DB=50
+    image: ms1-image
+    ports:
+    - 8080:8080
+version: '3'

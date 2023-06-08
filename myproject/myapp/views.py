@@ -5,6 +5,8 @@ from owlready2 import get_ontology
 from owlready2.reasoning import sync_reasoner_hermit
 import json
 import yaml
+import os
+import subprocess
 
 # This is the file path to your ontology
 ONTOLOGY_FILE_PATH = "file://myapp/ontologies/osr.owl"
@@ -42,9 +44,6 @@ def validate_form_data(form_data):
         sync_reasoner_hermit(infer_property_values=True)
 
         inconsistencies = list(ontology.inconsistent_classes())
-
-        
-        
         if len(inconsistencies) > 0:
             raise InconsistentOntologyError
     except InconsistentOntologyError:
@@ -57,6 +56,43 @@ def validate_form_data(form_data):
 received_data = None
 # This is the Django view that will be called when the user submits the form
 
+# This function convert the YAML File to docker compose yaml structure
+def process_data(data):
+    # Create a dictionary that will hold the Docker Compose data
+    docker_compose_data = {'version': '3', 'services': {}}
+
+    # Loop over the microservices in the data
+    for ms in data['microservices']:
+        # Create a dictionary that will hold the service data
+        service_data = {}
+
+        # Set the image of the service
+        service_data['image'] = ms['containerImage']
+
+        # Set the environment variables of the service
+        if 'environmentVariables' in ms:
+            service_data['environment'] = ms['environmentVariables']
+
+        # If the service has defined ports, set them
+        if 'ports' in ms:
+            # Docker Compose expects the ports to be a list of strings
+            service_data['ports'] = [str(ms['ports'])]
+
+        # Add the service data to the Docker Compose data under the service name
+        docker_compose_data['services'][ms['serviceName']] = service_data
+
+    return docker_compose_data
+
+# This function deploy the app
+def deploy_docker_compose(file_path):
+    # Change the current working directory to the directory of the file
+    dir_path = os.path.dirname(file_path)
+    os.chdir(dir_path)
+
+    # Run the Docker Compose command
+    subprocess.run(["docker-compose", "up", "-d"], check=True)
+
+# This view handle form information into yaml file
 @csrf_exempt
 def deployment(request):
     if request.method == 'POST':
@@ -79,23 +115,33 @@ def home(request):
     return JsonResponse({'info': 'Hello, H K!'}, safe=False)
 
 
+# This view handle deployment
 @csrf_exempt
 def handle_yaml(request):
     global received_data
     if request.method == 'POST':
-        received_yaml = request.body.decode('utf-8')
+        received_yaml = json.loads(request.body.decode('utf-8'))['yamlData']
         parsed_data = yaml.safe_load(received_yaml)
         received_data = parsed_data
-        # Process the parsed data to match the Docker Compose structure...
-        # docker_compose_data = ...
+
+        # Process the parsed data to match the Docker Compose structure
+        docker_compose_data = process_data(parsed_data)
 
         # Then dump it back to YAML format.
-        # docker_compose_yaml = yaml.safe_dump(docker_compose_data)
+        docker_compose_yaml = yaml.safe_dump(docker_compose_data)
+        received_data = docker_compose_yaml
+        with open('docker-compose.yaml', 'w') as file:
+            file.write(docker_compose_yaml)
 
-        # with open('docker-compose.yaml', 'w') as file:
-            # file.write(docker_compose_yaml)
+        # Deploy the Docker Compose app
+        try:
+            deploy_docker_compose('docker-compose.yaml')
+            message = 'Docker compose file generated and app deployed successfully'
+        except Exception as e:
+            message = str(e)
+            return JsonResponse({'error': message}, status=500)
 
-        return JsonResponse({'message': parsed_data})
+        return JsonResponse({'message': message})
     elif request.method == 'GET':
         return JsonResponse({'message': received_data}, status=405)
     else:
