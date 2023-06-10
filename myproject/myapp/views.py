@@ -7,9 +7,23 @@ import json
 import yaml
 import os
 import subprocess
+import docker 
 
 # This is the file path to your ontology
 ONTOLOGY_FILE_PATH = "file://myapp/ontologies/osr.owl"
+
+# Docker client 
+client = docker.from_env()
+
+# verify image function
+def verify_image(image_name):
+    try:
+        client.images.pull(image_name)
+        return True
+    except docker.errors.ImageNotFound:
+        return False
+    except docker.errors.APIError:
+        return False
 
 # This is a custom exception that we will raise when the ontology is inconsistent
 class InconsistentOntologyError(Exception):
@@ -97,16 +111,23 @@ def deploy_docker_compose(file_path):
 def deployment(request):
     if request.method == 'POST':
         form_data = json.loads(request.body.decode('utf-8'))
-        
+
         # Validate form data
         is_valid, message = validate_form_data(form_data)
         if is_valid:
-            # If the data is valid, convert it to YAML and return it as a response
+            # Check if the images exist
+            microservices = form_data.get('microservices', [])
+            for service in microservices:
+                image_name = service.get('containerImage')
+                if image_name and not verify_image(image_name):
+                    return JsonResponse({"error": f"Image {image_name} does not exist."}, status=400)
+
+            # If the images exist and the data is valid, convert it to YAML and return it as a response
             yaml_data = yaml.dump(form_data)
             return JsonResponse({"data": yaml_data}, status=200)
         else:
             return JsonResponse({"error": message}, status=400)
-    elif request.method == 'GET': 
+    elif request.method == 'GET':
         return JsonResponse({"error": "GET method not supported for this endpoint."}, status=405)
     else:
         return JsonResponse({"error": "Invalid request method. Only POST is allowed."}, status=405)
@@ -135,6 +156,12 @@ def handle_yaml(request):
 
         return JsonResponse({'message': 'Docker compose file generated successfully'})
     elif request.method == 'GET':
-        return JsonResponse({'message': received_data}, status=405)
+        if os.path.exists('docker-compose.yaml'):
+            with open('docker-compose.yaml', 'rb') as file:
+                response = HttpResponse(file.read(), content_type='application/octet-stream')
+                response['Content-Disposition'] = 'attachment; filename="docker-compose.yaml"'
+                return response
+        else:
+            return JsonResponse({'error': 'Docker compose file not found'}, status=404)
     else:
         return JsonResponse({'error': 'Invalid request'}, status=400)

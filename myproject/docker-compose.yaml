@@ -1,8 +1,20 @@
 services:
   ms1:
     environment:
-    - DB=50
+    - DB=15
     image: ms1-image
     ports:
-    - 8000:8000
+    - 8080:8000
+  ms2:
+    environment:
+    - DW=41
+    image: ms2-image
+    ports:
+    - 8080:8000
+  ms3:
+    environment:
+    - SD=47
+    image: ms3-image
+    ports:
+    - 4444:5000
 version: '3'
