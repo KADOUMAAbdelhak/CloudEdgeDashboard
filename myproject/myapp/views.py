@@ -129,19 +129,11 @@ def handle_yaml(request):
 
         # Then dump it back to YAML format.
         docker_compose_yaml = yaml.safe_dump(docker_compose_data)
-        received_data = docker_compose_yaml
+
         with open('docker-compose.yaml', 'w') as file:
             file.write(docker_compose_yaml)
 
-        # Deploy the Docker Compose app
-        try:
-            deploy_docker_compose('docker-compose.yaml')
-            message = 'Docker compose file generated and app deployed successfully'
-        except Exception as e:
-            message = str(e)
-            return JsonResponse({'error': message}, status=500)
-
-        return JsonResponse({'message': message})
+        return JsonResponse({'message': 'Docker compose file generated successfully'})
     elif request.method == 'GET':
         return JsonResponse({'message': received_data}, status=405)
     else:

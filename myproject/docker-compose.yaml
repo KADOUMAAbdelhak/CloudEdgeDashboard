@@ -4,5 +4,5 @@ services:
     - DB=50
     image: ms1-image
     ports:
-    - 8080:8080
+    - 8000:8000
 version: '3'
