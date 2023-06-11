@@ -7,13 +7,28 @@ import json
 import yaml
 import os
 import subprocess
-import docker 
+import docker
+import socket 
+import re
 
 # This is the file path to your ontology
 ONTOLOGY_FILE_PATH = "file://myapp/ontologies/osr.owl"
 
 # Docker client 
 client = docker.from_env()
+
+# env verification fucntion
+def is_valid_env_var_name(name):
+    return re.match("^[a-zA-Z_][a-zA-Z0-9_]*$", name) is not None
+
+# verify if port is free
+def is_port_free(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(("localhost", port))
+            return True
+        except socket.error:
+            return False
 
 # verify image function
 def verify_image(image_name):
@@ -85,12 +100,15 @@ def process_data(data):
 
         # Set the environment variables of the service
         if 'environmentVariables' in ms:
-            service_data['environment'] = ms['environmentVariables']
+            service_data['environment'] = [f"{env_var['key']}={env_var['value']}" for env_var in ms['environmentVariables']]
+
+
 
         # If the service has defined ports, set them
         if 'ports' in ms:
             # Docker Compose expects the ports to be a list of strings
-            service_data['ports'] = [str(ms['ports'])]
+            # As per the new structure, ports are already a list, so no need to wrap them in another list
+            service_data['ports'] = ms['ports']
 
         # Add the service data to the Docker Compose data under the service name
         docker_compose_data['services'][ms['serviceName']] = service_data
@@ -109,6 +127,7 @@ def deploy_docker_compose(file_path):
 # This view handle form information into yaml file
 @csrf_exempt
 def deployment(request):
+    used_ports = set()
     if request.method == 'POST':
         form_data = json.loads(request.body.decode('utf-8'))
 
@@ -121,7 +140,28 @@ def deployment(request):
                 image_name = service.get('containerImage')
                 if image_name and not verify_image(image_name):
                     return JsonResponse({"error": f"Image {image_name} does not exist."}, status=400)
+                
+            # Check if port is free
+                for port_mapping in service['ports']:
+                    host_port = int(port_mapping.split(':')[1])  # split and take the host port
 
+                    # Check if this port was already used by another service
+                    if host_port in used_ports:
+                        return JsonResponse({"error": f"Port {host_port} was already assigned to another service."}, status=400)
+                        
+                    # Check if this port is free on the host system
+                    if not is_port_free(host_port):
+                        return JsonResponse({"error": f"Port {host_port} is not available on the host system."}, status=400)
+                    
+                    used_ports.add(host_port)
+            
+            # Check if env variables are valid
+                if 'environmentVariables' in service:
+                    for env_var in service['environmentVariables']:
+                        key = env_var.get('key')
+                        if not is_valid_env_var_name(key):
+                            return JsonResponse({"error": f"Invalid environment variable name: {key}"}, status=400)
+                    
             # If the images exist and the data is valid, convert it to YAML and return it as a response
             yaml_data = yaml.dump(form_data)
             return JsonResponse({"data": yaml_data}, status=200)

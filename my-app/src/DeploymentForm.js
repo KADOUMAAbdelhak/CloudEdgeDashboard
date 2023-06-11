@@ -61,17 +61,25 @@ const DeploymentForm = () => {
         replicas: Yup.number().required('Number of Replicas is required').positive('Number of Replicas must be positive').integer('Number of Replicas must be an integer'),
         cpu: Yup.string().required('CPU is required'),
         memory: Yup.string().required('Memory is required'),
-        ports: Yup.string()
-        .required('Ports are required')
-        .matches(
-          /^([1-9][0-9]{0,4}|0):([1-9][0-9]{0,4}|0)$/,
-          'Ports must be in format: containerPort:hostPort and port numbers must be between 1 and 65535'
-        ),
+        ports: Yup.array()
+          .of(
+            Yup.string()
+              .required('Ports are required')
+              .matches(
+                /^([1-9][0-9]{0,4}|0):([1-9][0-9]{0,4}|0)$/,
+                'Ports must be in format: containerPort:hostPort and port numbers must be between 1 and 65535'
+              )
+          )
+          .required('At least one port must be defined'),
         environmentVariables: Yup.array().of(
-          Yup.string()
-            .required('Environment variable is required')
-            .matches(/^(\w+)=(\w+)$/, 'Environment variable must be in KEY=VALUE format')
-        ),
+          Yup.object().shape({
+            key: Yup.string()
+              .required('Key is required')
+              .matches(/^[a-zA-Z_][a-zA-Z0-9_]*$/, 'Invalid key. A key can only contain alphanumeric characters and underscores, and must not start with a number.'),
+            value: Yup.string()
+              .required('Value is required'),
+          })
+        ),          
         dependentService: Yup.string()
           .notOneOf([Yup.ref('serviceName'), null], "A service can't be dependent on itself"),
       })
@@ -242,32 +250,81 @@ const DeploymentForm = () => {
 
                     <div className="mb-3">
                       <label htmlFor={`microservices[${index}].ports`} className="form-label">Ports</label>
-                      <Field name={`microservices[${index}].ports`} placeholder="containerPort:hostPort" className="form-control" />
-                      <ErrorMessage name={`microservices[${index}].ports`} component="div" className="text-danger" />
+                      <FieldArray name={`microservices[${index}].ports`}>
+                        {({ insert, remove, push }) => (
+                          <div>
+                            {values.microservices[index].ports.length > 0 &&
+                              values.microservices[index].ports.map((port, idx) => (
+                                <div className="row" key={idx}>
+                                  <div className="col">
+                                    <Field
+                                      name={`microservices[${index}].ports[${idx}]`}
+                                      placeholder="containerPort:hostPort"
+                                      className="form-control"
+                                    />
+                                  </div>
+                                  <div className="col-auto">
+                                    <button
+                                      type="button"
+                                      className="btn btn-primary mb-3"
+                                      onClick={() => remove(idx)}
+                                    >
+                                      -
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn btn-primary mb-3"
+                                      onClick={() => insert(idx, '')}
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                  <ErrorMessage
+                                    name={`microservices[${index}].ports[${idx}]`}
+                                    component="div"
+                                    className="text-danger"
+                                  />
+                                </div>
+                              ))}
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              onClick={() => push('')}
+                            >
+                              Add new port mapping
+                            </button>
+                          </div>
+                        )}
+                      </FieldArray>
                     </div>
 
                     {/* Start of environment variables section */}
                     <div className="mb-3">
                       <label htmlFor={`microservices[${index}].environmentVariables`} className="form-label">Environment Variables</label>
-                      <FieldArray name={`microservices[${index}].environmentVariables`} placeholder="KEY=VALUE">
+                      <FieldArray name={`microservices[${index}].environmentVariables`}>
                         {({ push, remove }) => (
                           <>
                             {values.microservices[index].environmentVariables.map((_, subIndex) => (
                               <div key={subIndex} className="d-flex align-items-center mb-2">
-                                <Field name={`microservices[${index}].environmentVariables[${subIndex}]`} placeholder="KEY=VALUE" className="form-control"/>
+                                <Field name={`microservices[${index}].environmentVariables[${subIndex}].key`} placeholder="KEY" className="form-control mr-2" />
+                                <ErrorMessage name={`microservices[${index}].environmentVariables[${subIndex}].key`} component="div" className="text-danger" />
+                                
+                                <Field name={`microservices[${index}].environmentVariables[${subIndex}].value`} placeholder="VALUE" className="form-control" />
+                                <ErrorMessage name={`microservices[${index}].environmentVariables[${subIndex}].value`} component="div" className="text-danger" />
+                                
                                 <button type="button" onClick={() => remove(subIndex)} className="btn btn-danger ml-2">
                                   <i className="fas fa-minus-circle"></i>
                                 </button>
                               </div>
                             ))}
-                            <button type="button" onClick={() => push('')} className="btn btn-success">
+                            <button type="button" onClick={() => push({ key: '', value: '' })} className="btn btn-success">
                               <i className="fas fa-plus-circle"></i> Add Variable
                             </button>
                           </>
                         )}
                       </FieldArray>
-                      <ErrorMessage name={`microservices[${index}].environmentVariables`} component="div" className="text-danger" />
                     </div>
+
 
                     {/* Dependent Services */}
                     <div className="mb-3">
