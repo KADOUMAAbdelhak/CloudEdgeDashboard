@@ -18,8 +18,9 @@ ONTOLOGY_FILE_PATH = "file://myapp/ontologies/osr.owl"
 client = docker.from_env()
 
 # env verification fucntion
-def is_valid_env_var_name(name):
-    return re.match("^[a-zA-Z_][a-zA-Z0-9_]*$", name) is not None
+def is_valid_env_var(env_var):
+    return re.match("^[a-zA-Z_][a-zA-Z0-9_]*=[a-zA-Z0-9_]*$", env_var) is not None
+
 
 # verify if port is free
 def is_port_free(port):
@@ -100,7 +101,9 @@ def process_data(data):
 
         # Set the environment variables of the service
         if 'environmentVariables' in ms:
-            service_data['environment'] = [f"{env_var['key']}={env_var['value']}" for env_var in ms['environmentVariables']]
+            service_data['environment'] = ms['environmentVariables']
+
+
 
 
 
@@ -158,9 +161,9 @@ def deployment(request):
             # Check if env variables are valid
                 if 'environmentVariables' in service:
                     for env_var in service['environmentVariables']:
-                        key = env_var.get('key')
-                        if not is_valid_env_var_name(key):
-                            return JsonResponse({"error": f"Invalid environment variable name: {key}"}, status=400)
+                        if not is_valid_env_var(env_var):  # is_valid_env_var validates the whole "KEY=VALUE" string
+                            return JsonResponse({"error": f"Invalid environment variable: {env_var}"}, status=400)
+
                     
             # If the images exist and the data is valid, convert it to YAML and return it as a response
             yaml_data = yaml.dump(form_data)
