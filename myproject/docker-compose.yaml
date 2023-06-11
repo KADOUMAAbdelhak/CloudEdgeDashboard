@@ -1,8 +1,17 @@
 services:
-  ms1:
+  data-processor:
     environment:
-    - DB=50
-    image: ms1-image
+    - INFLUXDB_DB=sensor_data
+    - INFLUXDB_ADMIN_USER=admin
+    - INFLUXDB_ADMIN_PASSWORD=password
+    image: influxdb:1.8
     ports:
-    - 8000:8000
+    - 8086:8086
+  data-visualization:
+    environment:
+    - GF_SECURITY_ADMIN_USER=admin
+    - GF_SECURITY_ADMIN_PASSWORD=password
+    image: grafana/grafana:latest
+    ports:
+    - 8003:3000
 version: '3'
