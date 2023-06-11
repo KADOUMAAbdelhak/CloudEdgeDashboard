@@ -54,10 +54,8 @@ const DeploymentForm = () => {
         serviceName: Yup.string().required('Service Name is required'),
         containerImage: Yup.string()
         .required('Container Image is required')
-        .matches(
-            /^([a-z0-9]+(-[a-z0-9]+)*\.)?[a-z0-9]([a-z0-9-]*[a-z0-9])?(:(\w+))?(\/([\w]+))?$/,
-            'Container Image must follow Docker naming conventions'
-        ),
+        .matches(/^([\w][\w.-]{0,127})(:([\w][\w.-]{0,127}))?$/, 'Container Image must follow Docker naming conventions'),
+
         replicas: Yup.number().required('Number of Replicas is required').positive('Number of Replicas must be positive').integer('Number of Replicas must be an integer'),
         cpu: Yup.string().required('CPU is required'),
         memory: Yup.string().required('Memory is required'),
@@ -74,13 +72,11 @@ const DeploymentForm = () => {
         .min(1, 'At least one port mapping is required'),
         environmentVariables: Yup.array()
         .of(
-            Yup.string()
-                .required('Environment variable is required')
-                .matches(/^(\w+)=(\w+)$/, 'Environment variable must be in "KEY=VALUE" format'),
+          Yup.string()
+            .required('Environment variable is required')
+            .matches(/^([a-zA-Z_][a-zA-Z0-9_]*)=(\w+)$/, 'Environment variable must be in "KEY=VALUE" format'),
         )
-        .min(1, 'At least one environment variable is required'),        
-        dependentService: Yup.string()
-          .notOneOf([Yup.ref('serviceName'), null], "A service can't be dependent on itself"),
+        .min(1, 'At least one environment variable is required'), 
       })
     ),
   });

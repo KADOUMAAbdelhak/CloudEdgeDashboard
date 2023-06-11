@@ -1,9 +1,9 @@
 services:
-  ms1:
+  sensor-collector:
     environment:
-    - DB=50
-    image: nginx
+    - SENSOR_API_KEY=your
+    - SENSOR_INTERVAL=5
+    image: nginx:latest
     ports:
-    - '8000:40'
-    - 8000:80
+    - 8001:8001
 version: '3'
