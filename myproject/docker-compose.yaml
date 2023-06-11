@@ -2,7 +2,8 @@ services:
   ms1:
     environment:
     - DB=50
-    image: redis
+    image: nginx
     ports:
+    - '8000:40'
     - 8000:80
 version: '3'
