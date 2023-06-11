@@ -53,8 +53,7 @@ const DeploymentForm = () => {
       Yup.object().shape({
         serviceName: Yup.string().required('Service Name is required'),
         containerImage: Yup.string()
-        .required('Container Image is required')
-        .matches(/^([\w][\w.-]{0,127})(:([\w][\w.-]{0,127}))?$/, 'Container Image must follow Docker naming conventions'),
+        .required('Container Image is required'),
 
         replicas: Yup.number().required('Number of Replicas is required').positive('Number of Replicas must be positive').integer('Number of Replicas must be an integer'),
         cpu: Yup.string().required('CPU is required'),

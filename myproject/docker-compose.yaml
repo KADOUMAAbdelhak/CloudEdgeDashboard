@@ -1,9 +1,17 @@
 services:
-  sensor-collector:
+  data-processor:
     environment:
-    - SENSOR_API_KEY=your
-    - SENSOR_INTERVAL=5
-    image: nginx:latest
+    - INFLUXDB_DB=sensor_data
+    - INFLUXDB_ADMIN_USER=admin
+    - INFLUXDB_ADMIN_PASSWORD=password
+    image: influxdb:1.8
     ports:
-    - 8001:8001
+    - 8086:8086
+  data-visualization:
+    environment:
+    - GF_SECURITY_ADMIN_USER=admin
+    - GF_SECURITY_ADMIN_PASSWORD=password
+    image: grafana/grafana:latest
+    ports:
+    - 8003:3000
 version: '3'
