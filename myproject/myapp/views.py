@@ -91,17 +91,42 @@ def process_data(data):
         service_data = {}
         # Set the image of the service
         service_data['image'] = ms['containerImage']
+        # Set the number of replicas for the service
+        service_data['deploy'] = {'replicas': ms['replicas']}
         # Set the environment variables of the service
         if 'environmentVariables' in ms:
             service_data['environment'] = ms['environmentVariables']
         # If the service has defined ports, set them
         if 'ports' in ms:
-            # Docker Compose expects the ports to be a list of strings
-            # As per the new structure, ports are already a list, so no need to wrap them in another list
             service_data['ports'] = ms['ports']
+        # Set the cpu and memory limits for the service
+        service_data['deploy']['resources'] = {
+            'limits': {
+                'cpus': ms['cpu'],
+                'memory': ms['memory']
+            }
+        }
+        # If the service has dependent services, set them
+        if 'dependentService' in ms:
+            service_data['depends_on'] = [ms['dependentService']]
+        # If the service has labels, set them
+        if 'labels' in ms:
+            service_data['labels'] = [ms['labels']]
+        # Set the restart policy
+        service_data['restart'] = ms['restartPolicy']
+        # If the service has a health check command, set it
+        if 'healthCheck' in ms:
+            service_data['healthcheck'] = {
+                'test': ms['healthCheck'],
+                'interval': '1m',
+                'timeout': '10s',
+                'retries': 3,
+                'start_period': '30s'
+            }
         # Add the service data to the Docker Compose data under the service name
         docker_compose_data['services'][ms['serviceName']] = service_data
     return docker_compose_data
+
 
 # This function deploy the app
 def deploy_docker_compose(file_path):
