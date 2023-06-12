@@ -138,6 +138,9 @@ const DeploymentForm = () => {
       memory: '',
       ports: '',
       environmentVariables: [''],
+      healthCheck: '',  // custom command to check health
+      restartPolicy: "no",  // default value, change as needed
+      labels: '',  // key-value pairs of metadata
     }],
   };
 
@@ -242,6 +245,7 @@ const DeploymentForm = () => {
                     {/* CPU section */}
                     <div className="mb-3">
                       <label htmlFor={`microservices[${index}].cpu`} className="form-label">CPU</label>
+                      <small className="form-text text-muted"> Specify the maximum amount of CPU resources that this service can use, e.g., '2' </small>
                       <Field name={`microservices[${index}].cpu`} placeholder="CPU" type="number" className="form-control" />
                       <ErrorMessage name={`microservices[${index}].cpu`} component="div" className="text-danger" />
                     </div>
@@ -249,6 +253,7 @@ const DeploymentForm = () => {
                     {/* memory section */}
                     <div className="mb-3">
                       <label htmlFor={`microservices[${index}].memory`} className="form-label">Memory</label>
+                      <small className="form-text text-muted"> Specify the maximum amount of memory (RAM) that this service can use, e.g., '512 or 1024' </small>
                       <Field name={`microservices[${index}].memory`} placeholder="Memory" type="number" className="form-control" />
                       <ErrorMessage name={`microservices[${index}].memory`} component="div" className="text-danger" />
                     </div>
@@ -335,6 +340,7 @@ const DeploymentForm = () => {
                     {/* Dependent Services */}
                     <div className="mb-3">
                       <label htmlFor={`microservices[${index}].dependentService`} className="form-label">Dependent Services</label>
+                      <small className="form-text text-muted"> List the names of other services that this service depends on.  </small>
                       <Field as="select" name={`microservices[${index}].dependentService`} className="form-control">
                         <option value="">None</option>
                         {values.microservices.map((microservice, microserviceIndex) => (
@@ -346,6 +352,36 @@ const DeploymentForm = () => {
                         ))}
                       </Field>
                       <ErrorMessage name={`microservices[${index}].dependentService`} component="div" className="text-danger" />
+                    </div>
+
+                    {/* Labels section */}
+                    <div className="mb-3">
+                      <label htmlFor={`microservices[${index}].labels`} className="form-label">Labels</label>
+                      <small className="form-text text-muted"> Provide additional metadata for this service using labels. </small>
+                      <Field name={`microservices[${index}].labels`} placeholder="Comma-separated labels" className="form-control" />
+                      <ErrorMessage name={`microservices[${index}].labels`} component="div" className="text-danger" />
+                    </div>
+
+                    {/* Restart policies section */}
+                    <div className="mb-3">
+                      <label htmlFor={`microservices[${index}].restartPolicy`} className="form-label">Restart Policy</label>
+                      <small className="form-text text-muted"> Choose how the system should handle service restarts. </small>
+                      <Field as="select" name={`microservices[${index}].restartPolicy`} className="form-control">
+                        <option value="">Select...</option>
+                        <option value="no">No</option>
+                        <option value="always">Always</option>
+                        <option value="on-failure">On Failure</option>
+                        <option value="unless-stopped">Unless Stopped</option>
+                      </Field>
+                      <ErrorMessage name={`microservices[${index}].restartPolicy`} component="div" className="text-danger" />
+                    </div>
+
+                    {/* Health checks section */}
+                    <div className="mb-3">
+                      <label htmlFor={`microservices[${index}].healthCheck`} className="form-label">Health Check</label>
+                      <small className="form-text text-muted"> Enter a command that the system can run to check the health of the service. </small>
+                      <Field name={`microservices[${index}].healthCheck`} placeholder="Health Check URL" className="form-control" />
+                      <ErrorMessage name={`microservices[${index}].healthCheck`} component="div" className="text-danger" />
                     </div>
 
                     {/* Add more fields specific to each microservice */}
