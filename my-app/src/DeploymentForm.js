@@ -28,43 +28,47 @@ const DeploymentForm = () => {
   
   const validationSchema = Yup.object().shape({
     applicationName: Yup.string()
-    .required('Application Name is required')
-    .matches(/^[a-zA-Z0-9]+$/, 'Application Name must be one word and consist of alphanumeric characters only.'),
+      .required('Application Name is required')
+      .matches(/^[a-zA-Z0-9]+$/, 'Application Name must be one word and consist of alphanumeric characters only.'),
     applicationVersion: Yup.string()
-    .required('Application Version is required')
-    .matches(/^(\d\.)?(\d\.)?(\*|\d)$/, 'Application Version must follow semantic versioning (x.y.z)'),
+      .required('Application Version is required')
+      .matches(/^(\d\.)?(\d\.)?(\*|\d)$/, 'Application Version must follow semantic versioning (x.y.z)'),
     microservices: Yup.array()
-        .min(1, 'At least one microservice must be provided')
-        .of(
-      Yup.object().shape({
-        serviceName: Yup.string().required('Service Name is required'),
-        containerImage: Yup.string()
-        .required('Container Image is required'),
-
-        replicas: Yup.number().required('Number of Replicas is required').positive('Number of Replicas must be positive').integer('Number of Replicas must be an integer'),
-        cpu: Yup.string().required('CPU is required'),
-        memory: Yup.string().required('Memory is required'),
-        ports: Yup.array()
-        .of(
-            Yup.string()
+      .min(1, 'At least one microservice must be provided')
+      .of(
+        Yup.object().shape({
+          serviceName: Yup.string().required('Service Name is required'),
+          containerImage: Yup.string()
+            .required('Container Image is required'),
+          replicas: Yup.number().required('Number of Replicas is required').positive('Number of Replicas must be positive').integer('Number of Replicas must be an integer'),
+          cpu: Yup.string().required('CPU is required'),
+          memory: Yup.string().required('Memory is required'),
+          ports: Yup.array()
+            .of(
+              Yup.string()
                 .required('Port mapping is required')
-                .matches(/^(\d+):(\d+)$/, 'Port mapping must be in "containerPort:hostPort" format')
+                .matches(/^(\d+):(\d+)$/, 'Port mapping must be in "hostPort:contianerPort" format')
                 .test('is-valid-port', 'Ports must be numbers between 1 and 65535', function(value) {
-                    const ports = value.split(':').map(Number);
-                    return ports.every(port => port > 0 && port <= 65535);
+                  const ports = value.split(':').map(Number);
+                  return ports.every(port => port > 0 && port <= 65535);
                 }),
-        )
-        .min(1, 'At least one port mapping is required'),
-        environmentVariables: Yup.array()
-        .of(
-          Yup.string()
-            .required('Environment variable is required')
-            .matches(/^([a-zA-Z_][a-zA-Z0-9_]*)=(\w+)$/, 'Environment variable must be in "KEY=VALUE" format'),
-        )
-        .min(1, 'At least one environment variable is required'), 
-      })
-    ),
+            )
+            .min(1, 'At least one port mapping is required'),
+          environmentVariables: Yup.array()
+            .of(
+              Yup.string()
+                .required('Environment variable is required')
+                .matches(/^([a-zA-Z_][a-zA-Z0-9_]*)=(\w+)$/, 'Environment variable must be in "KEY=VALUE" format'),
+            )
+            .min(1, 'At least one environment variable is required'), 
+          dependentService: Yup.string(),
+          labels: Yup.string(),
+          restartPolicy: Yup.string().required('Restart policy is required'),
+          healthCheck: Yup.string(),
+        })
+      ),
   });
+  
 
   // Inside your component...
   const navigate = useNavigate();
@@ -271,7 +275,7 @@ const DeploymentForm = () => {
                                   <div className="col">
                                     <Field
                                       name={`microservices[${index}].ports[${idx}]`}
-                                      placeholder="containerPort:hostPort"
+                                      placeholder="hostPort:containerPort"
                                       className="form-control"
                                     />
                                   </div>
