@@ -142,9 +142,6 @@ const DeploymentForm = () => {
       memory: '',
       ports: '',
       environmentVariables: [''],
-      healthCheck: '',  // custom command to check health
-      restartPolicy: "no",  // default value, change as needed
-      labels: '',  // key-value pairs of metadata
     }],
   };
 

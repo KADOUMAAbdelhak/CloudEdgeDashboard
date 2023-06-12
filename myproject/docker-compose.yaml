@@ -1,23 +1,16 @@
 services:
   ms1:
     deploy:
-      replicas: 2
+      replicas: 1
       resources:
         limits:
           cpus: 2
           memory: 512
     environment:
     - DB=50
-    healthcheck:
-      interval: 1m
-      retries: 3
-      start_period: 30s
-      test: ''
-      timeout: 10s
     image: nginx
-    labels:
-    - ''
     ports:
     - 8080:80
+    - '8080:50'
     restart: always
 version: '3'

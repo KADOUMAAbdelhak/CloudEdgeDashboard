@@ -137,6 +137,17 @@ def deploy_docker_compose(file_path):
     # Run the Docker Compose command
     subprocess.run(["docker-compose", "up", "-d"], check=True)
 
+class CustomDumper(yaml.SafeDumper):
+    def ignore_aliases(self, data):
+        return True
+
+def str_presenter(dumper, data):
+    if len(data.split("\n")) > 1:  # check for multiline string
+        return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='')
+
+yaml.add_representer(str, str_presenter, Dumper=CustomDumper)
+
 # This view handle form information into yaml file
 @csrf_exempt
 def deployment(request):
@@ -150,6 +161,7 @@ def deployment(request):
             # Check if the images exist
             microservices = form_data.get('microservices', [])
             for service in microservices:
+                service_used_ports = set()
                 image_name = service.get('containerImage')
                 if image_name and not verify_image(image_name):
                     return JsonResponse({"error": f"Image {image_name} does not exist."}, status=400)
@@ -158,15 +170,22 @@ def deployment(request):
                 for port_mapping in service['ports']:
                     host_port = int(port_mapping.split(':')[0])  # split and take the host port
 
+                    # Check if this port was used in the current service
+                    if host_port in service_used_ports:
+                        continue  # If the port was already used in this service, we don't need to check if it's free or add it to used_ports
+
                     # Check if this port was already used by another service
                     if host_port in used_ports:
                         return JsonResponse({"error": f"Port {host_port} was already assigned to another service."}, status=400)
-                        
+
+                    
+
                     # Check if this port is free on the host system
                     if not is_port_free(host_port):
                         return JsonResponse({"error": f"Port {host_port} is not available on the host system."}, status=400)
-                    
+
                     used_ports.add(host_port)
+                    service_used_ports.add(host_port)
 
             
             # Check if env variables are valid
@@ -177,7 +196,7 @@ def deployment(request):
 
                     
             # If the images exist and the data is valid, convert it to YAML and return it as a response
-            yaml_data = yaml.dump(form_data)
+            yaml_data = yaml.dump(form_data, Dumper=CustomDumper)
             return JsonResponse({"data": yaml_data}, status=200)
         else:
             return JsonResponse({"error": message}, status=400)
