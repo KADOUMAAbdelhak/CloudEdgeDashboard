@@ -150,6 +150,17 @@ const DeploymentForm = () => {
     initialValues = JSON.parse(savedFormValues);
   }
 
+  const onSubmit = (values, actions) => {
+    // Transform environment variables from array to comma-separated string
+    values.microservices = values.microservices.map((ms) => ({
+      ...ms,
+      environmentVariables: ms.environmentVariables.join(','),
+    }));
+  
+    sendForm(values);
+    actions.setSubmitting(false);
+  };
+
 
 
   return (

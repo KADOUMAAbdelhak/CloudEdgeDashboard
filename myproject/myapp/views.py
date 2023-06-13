@@ -11,6 +11,9 @@ import docker
 import socket 
 import re
 
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Base directory of your Django project or app
+
 # This is the file path to your ontology
 ONTOLOGY_FILE_PATH = "file://myapp/ontologies/osr.owl"
 
@@ -19,7 +22,7 @@ client = docker.from_env()
 
 # env verification fucntion
 def is_valid_env_var(env_var):
-    return re.match("^[a-zA-Z_][a-zA-Z0-9_]*=[a-zA-Z0-9_]*$", env_var) is not None
+    return re.fullmatch(r'^[a-zA-Z_][a-zA-Z0-9_]*=.*$', env_var) is not None
 
 
 # verify if port is free
@@ -46,75 +49,51 @@ class InconsistentOntologyError(Exception):
     def __init__(self, inconsistencies):
         self.inconsistencies = inconsistencies
 
-# This function validates a form data dictionary against the ontology
-def validate_form_data(form_data):
-    # First, we load the ontology
-    # world = World()
-    ontology = get_ontology(ONTOLOGY_FILE_PATH).load()
-    with ontology:
-        # Then, we create instances of Application and Microservice in the ontology
-        # based on the form data
-        application = ontology.Application(form_data['applicationName'])
-        application.hasVersion = form_data['applicationVersion']
-        for ms_data in form_data['microservices']:
-            ms = ontology.Microservice(ms_data['serviceName'])
-            ms.hasImage = ms_data['containerImage']
-            ms.hasReplicas = ms_data['replicas']
-            ms.hasCPU = ms_data['cpu']
-            ms.hasMemory = ms_data['memory']
-            # Add the other attributes here...
-            # Then, we relate the Application instance to the Microservice instances
-            application.hasMicroservice = [ms]
-    # Then, we run the reasoner to validate the ontology
-    try:
-        sync_reasoner_hermit(infer_property_values=True)
-        inconsistencies = list(ontology.inconsistent_classes())
-        if len(inconsistencies) > 0:
-            raise InconsistentOntologyError
-    except InconsistentOntologyError:
-        return False, "The form data is not valid according to the ontology."
-
-    # If we get here without any exceptions, the form data is valid
-    return True, "The form data is valid."
-
 # This variable will store the most recently received data
 received_data = None
 
 
 # This function convert the YAML File to docker compose yaml structure
 def process_data(data):
-    # Create a dictionary that will hold the Docker Compose data
-    docker_compose_data = {'version': '3', 'services': {}}
-    # Loop over the microservices in the data
+    docker_compose_data = {'version': '3.8', 'services': {}}
+
     for ms in data['microservices']:
-        # Create a dictionary that will hold the service data
         service_data = {}
-        # Set the image of the service
+        # Container image
         service_data['image'] = ms['containerImage']
-        # Set the number of replicas for the service
-        service_data['deploy'] = {'replicas': ms['replicas']}
-        # Set the environment variables of the service
-        if 'environmentVariables' in ms:
-            service_data['environment'] = ms['environmentVariables']
-        # If the service has defined ports, set them
-        if 'ports' in ms:
-            service_data['ports'] = ms['ports']
-        # Set the cpu and memory limits for the service
-        service_data['deploy']['resources'] = {
-            'limits': {
-                'cpus': ms['cpu'],
-                'memory': ms['memory']
+
+        # Deployment settings
+        service_data['deploy'] = {
+            'replicas': ms['replicas'],
+            'resources': {
+                'limits': {
+                    'cpus': str(ms['cpu']),
+                    'memory': f"{ms['memory']}M"
+                }
             }
         }
-        # If the service has dependent services, set them
-        if 'dependentService' in ms:
-            service_data['depends_on'] = [ms['dependentService']]
-        # If the service has labels, set them
+
+        # Environment variables
+        if 'environment' in ms:
+            service_data['environment'] = ms['environment']
+
+        # Port mappings
+        if 'ports' in ms:
+            service_data['ports'] = ms['ports']
+
+        # Dependencies
+        if 'depends_on' in ms:
+            service_data['depends_on'] = [ms['depends_on']]
+
+        # Labels
         if 'labels' in ms:
-            service_data['labels'] = [ms['labels']]
-        # Set the restart policy
-        service_data['restart'] = ms['restartPolicy']
-        # If the service has a health check command, set it
+            service_data['labels'] = ms['labels']
+
+        # Restart policy
+        if 'restartPolicy' in ms:
+            service_data['restart'] = ms['restartPolicy']
+
+        # Health checks
         if 'healthCheck' in ms:
             service_data['healthcheck'] = {
                 'test': ms['healthCheck'],
@@ -123,16 +102,25 @@ def process_data(data):
                 'retries': 3,
                 'start_period': '30s'
             }
-        # Add the service data to the Docker Compose data under the service name
+
         docker_compose_data['services'][ms['serviceName']] = service_data
+
     return docker_compose_data
 
 
-# This function deploy the app
+
+# deploy_docker_compose function
 def deploy_docker_compose(file_path):
-    # Change the current working directory to the directory of the file
+    print(f"File path: {file_path}")
     dir_path = os.path.dirname(file_path)
+    print(f"Directory path: {dir_path}")
+
+    if not os.path.isfile(file_path):
+        print(f"The file does not exist at the provided path: {file_path}")
+        return
+
     os.chdir(dir_path)
+    subprocess.run(["docker-compose", "up", "-d"], check=True)
 
     # Run the Docker Compose command
     subprocess.run(["docker-compose", "up", "-d"], check=True)
@@ -155,51 +143,48 @@ def deployment(request):
     if request.method == 'POST':
         form_data = json.loads(request.body.decode('utf-8'))
 
-        # Validate form data
-        is_valid, message = validate_form_data(form_data)
-        if is_valid:
-            # Check if the images exist
-            microservices = form_data.get('microservices', [])
-            for service in microservices:
-                service_used_ports = set()
-                image_name = service.get('containerImage')
-                if image_name and not verify_image(image_name):
-                    return JsonResponse({"error": f"Image {image_name} does not exist."}, status=400)
-                
-            # Check if port is free
-                for port_mapping in service['ports']:
-                    host_port = int(port_mapping.split(':')[0])  # split and take the host port
-
-                    # Check if this port was used in the current service
-                    if host_port in service_used_ports:
-                        continue  # If the port was already used in this service, we don't need to check if it's free or add it to used_ports
-
-                    # Check if this port was already used by another service
-                    if host_port in used_ports:
-                        return JsonResponse({"error": f"Port {host_port} was already assigned to another service."}, status=400)
-
-                    
-
-                    # Check if this port is free on the host system
-                    if not is_port_free(host_port):
-                        return JsonResponse({"error": f"Port {host_port} is not available on the host system."}, status=400)
-
-                    used_ports.add(host_port)
-                    service_used_ports.add(host_port)
-
+        
+        # Check if the images exist
+        microservices = form_data.get('microservices', [])
+        for service in microservices:
+            service_used_ports = set()
+            image_name = service.get('containerImage')
+            if image_name and not verify_image(image_name):
+                return JsonResponse({"error": f"Image {image_name} does not exist."}, status=400)
             
-            # Check if env variables are valid
-                if 'environmentVariables' in service:
-                    for env_var in service['environmentVariables']:
-                        if not is_valid_env_var(env_var):  # is_valid_env_var validates the whole "KEY=VALUE" string
-                            return JsonResponse({"error": f"Invalid environment variable: {env_var}"}, status=400)
+        # Check if port is free
+            for port_mapping in service['ports']:
+                host_port = int(port_mapping.split(':')[0])  # split and take the host port
 
-                    
-            # If the images exist and the data is valid, convert it to YAML and return it as a response
-            yaml_data = yaml.dump(form_data, Dumper=CustomDumper)
-            return JsonResponse({"data": yaml_data}, status=200)
-        else:
-            return JsonResponse({"error": message}, status=400)
+                # Check if this port was used in the current service
+                if host_port in service_used_ports:
+                    continue  # If the port was already used in this service, we don't need to check if it's free or add it to used_ports
+
+                # Check if this port was already used by another service
+                if host_port in used_ports:
+                    return JsonResponse({"error": f"Port {host_port} was already assigned to another service."}, status=400)
+
+                
+
+                # Check if this port is free on the host system
+                if not is_port_free(host_port):
+                    return JsonResponse({"error": f"Port {host_port} is not available on the host system."}, status=400)
+
+                used_ports.add(host_port)
+                service_used_ports.add(host_port)
+
+        
+        # Check if env variables are valid
+            if 'environment' in service:
+                for env_var in service['environment']:
+                    if not is_valid_env_var(env_var):
+                        return JsonResponse({"error": f"Invalid environment variable: {env_var}"}, status=400)
+
+                
+        # If the images exist and the data is valid, convert it to YAML and return it as a response
+        yaml_data = yaml.dump(form_data, Dumper=CustomDumper)
+        return JsonResponse({"data": yaml_data}, status=200)
+    
     elif request.method == 'GET':
         return JsonResponse({"error": "GET method not supported for this endpoint."}, status=405)
     else:
@@ -224,17 +209,25 @@ def handle_yaml(request):
         # Then dump it back to YAML format.
         docker_compose_yaml = yaml.safe_dump(docker_compose_data)
 
-        with open('docker-compose.yaml', 'w') as file:
+        # Save the Docker Compose file
+        file_path = os.path.join(BASE_DIR, 'docker-compose.yaml')
+        with open(file_path, 'w') as file:
             file.write(docker_compose_yaml)
 
-        return JsonResponse({'message': 'Docker compose file generated successfully'})
-    elif request.method == 'GET':
-        if os.path.exists('docker-compose.yaml'):
-            with open('docker-compose.yaml', 'rb') as file:
-                response = HttpResponse(file.read(), content_type='application/octet-stream')
-                response['Content-Disposition'] = 'attachment; filename="docker-compose.yaml"'
-                return response
-        else:
-            return JsonResponse({'error': 'Docker compose file not found'}, status=404)
+        # Deploy the Docker Compose file
+        try:
+            deploy_docker_compose(file_path)
+            message = 'Docker compose file generated and services deployed successfully'
+        except subprocess.CalledProcessError:
+            message = 'There was an error deploying the services'
+
+        # Use os.path.join to create the full file path
+        file_path = os.path.join(BASE_DIR, 'docker-compose.yaml')
+        dir_path = os.path.dirname(file_path)
+        os.chdir(dir_path) # change directory
+        # Get the state of the services
+        service_states = subprocess.check_output(["docker-compose", "ps"]).decode('utf-8')
+
+        return JsonResponse({'message': message, 'services': service_states})
     else:
         return JsonResponse({'error': 'Invalid request'}, status=400)

@@ -1,0 +1,13 @@
+services:
+  ms1:
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512M
+    image: nginx
+    ports:
+    - 8080:80
+    restart: 'no'
+version: '3.8'

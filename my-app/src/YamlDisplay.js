@@ -1,4 +1,4 @@
-import React from 'react';
+import {React, useState} from 'react';
 import AceEditor from 'react-ace';
 import 'ace-builds/src-noconflict/mode-yaml';
 import 'ace-builds/src-noconflict/theme-monokai';
@@ -7,6 +7,8 @@ import { useLocation } from 'react-router-dom';
 function YamlDisplay() {
   const location = useLocation();
   const yamlData = location.state.yamlData;
+
+  const [serverResponse, setServerResponse] = useState('');
 
   console.log(yamlData);
 
@@ -23,6 +25,9 @@ function YamlDisplay() {
       console.error('Failed to send YAML data to server');
       return;
     }
+
+    const data = await response.json();
+    setServerResponse(JSON.stringify(data, null, 2));
 
     console.log('YAML data sent successfully');
   };
@@ -44,6 +49,12 @@ function YamlDisplay() {
         readOnly={true}
       />
       <button style={{ marginTop: '20px', padding: '10px', borderRadius: '5px', backgroundColor: '#008CBA', color: 'white', fontSize: '16px' }} onClick={sendToServer}>Deploy</button>
+      {serverResponse && (
+        <div style={{ marginTop: '20px', fontSize: '16px' }}>
+          <h2>Server response:</h2>
+          <pre>{serverResponse}</pre>
+        </div>
+      )}
     </div>
   );
 };
