@@ -1,5 +1,6 @@
 import React from 'react';
 import { Formik, Field, FieldArray, Form, ErrorMessage } from 'formik';
+import { useFormikContext } from 'formik';
 import * as Yup from 'yup';
 import 'bootstrap/dist/css/bootstrap.min.css'; // Import Bootstrap CSS
 import { toast } from 'react-toastify';
@@ -7,78 +8,67 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 
 
 const DeploymentForm = () => {
 
-  const [microservices, setMicroservices] = useState([]);
-
-  const handleAddMicroservice = () => {
-    setMicroservices([
-      ...microservices,
-      {
-        serviceName: '',
-        containerImage: '',
-        replicas: '',
-        cpu: '',
-        memory: '',
-        ports: '',
-        environmentVariables: [''],
-      },
-    ]);
-    toast.success('Microservice added successfully'); // Show success notification
+  const MyComponent = () => {
+    const { values } = useFormikContext();
+  // Save form data to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('formValues', JSON.stringify(values));
+  }, [values]);
+  
+    // rest of your component...
   };
-
-  const handleRemoveMicroservice = (index) => {
-    const updatedMicroservices = [...microservices];
-    updatedMicroservices.splice(index, 1);
-    setMicroservices(updatedMicroservices);
-    toast.success('Microservice removed successfully')
-  };
-
+  
   // Define validation schema using Yup
   
   const validationSchema = Yup.object().shape({
     applicationName: Yup.string()
-    .required('Application Name is required')
-    .matches(/^[a-zA-Z0-9]+$/, 'Application Name must be one word and consist of alphanumeric characters only.'),
+      .required('Application Name is required')
+      .matches(/^[a-zA-Z0-9]+$/, 'Application Name must be one word and consist of alphanumeric characters only.'),
     applicationVersion: Yup.string()
-    .required('Application Version is required')
-    .matches(/^(\d\.)?(\d\.)?(\*|\d)$/, 'Application Version must follow semantic versioning (x.y.z)'),
+      .required('Application Version is required')
+      .matches(/^(\d\.)?(\d\.)?(\*|\d)$/, 'Application Version must follow semantic versioning (x.y.z)'),
     microservices: Yup.array()
-        .min(1, 'At least one microservice must be provided')
-        .of(
-      Yup.object().shape({
-        serviceName: Yup.string().required('Service Name is required'),
-        containerImage: Yup.string()
-        .required('Container Image is required'),
-
-        replicas: Yup.number().required('Number of Replicas is required').positive('Number of Replicas must be positive').integer('Number of Replicas must be an integer'),
-        cpu: Yup.string().required('CPU is required'),
-        memory: Yup.string().required('Memory is required'),
-        ports: Yup.array()
-        .of(
-            Yup.string()
+      .min(1, 'At least one microservice must be provided')
+      .of(
+        Yup.object().shape({
+          serviceName: Yup.string().required('Service Name is required'),
+          containerImage: Yup.string()
+            .required('Container Image is required'),
+          replicas: Yup.number().required('Number of Replicas is required').positive('Number of Replicas must be positive').integer('Number of Replicas must be an integer'),
+          cpu: Yup.string().required('CPU is required'),
+          memory: Yup.string().required('Memory is required'),
+          ports: Yup.array()
+            .of(
+              Yup.string()
                 .required('Port mapping is required')
-                .matches(/^(\d+):(\d+)$/, 'Port mapping must be in "containerPort:hostPort" format')
+                .matches(/^(\d+):(\d+)$/, 'Port mapping must be in "hostPort:contianerPort" format')
                 .test('is-valid-port', 'Ports must be numbers between 1 and 65535', function(value) {
-                    const ports = value.split(':').map(Number);
-                    return ports.every(port => port > 0 && port <= 65535);
+                  const ports = value.split(':').map(Number);
+                  return ports.every(port => port > 0 && port <= 65535);
                 }),
-        )
-        .min(1, 'At least one port mapping is required'),
-        environmentVariables: Yup.array()
-        .of(
-          Yup.string()
-            .required('Environment variable is required')
-            .matches(/^([a-zA-Z_][a-zA-Z0-9_]*)=(\w+)$/, 'Environment variable must be in "KEY=VALUE" format'),
-        )
-        .min(1, 'At least one environment variable is required'), 
-      })
-    ),
+            )
+            .min(1, 'At least one port mapping is required'),
+          environmentVariables: Yup.array()
+            .of(
+              Yup.string()
+                .required('Environment variable is required')
+                .matches(/^([a-zA-Z_][a-zA-Z0-9_]*)=(\w+)$/, 'Environment variable must be in "KEY=VALUE" format'),
+            )
+            .min(1, 'At least one environment variable is required'), 
+          dependentService: Yup.string(),
+          labels: Yup.string(),
+          restartPolicy: Yup.string().required('Restart policy is required'),
+          healthCheck: Yup.string(),
+        })
+      ),
   });
+  
 
   // Inside your component...
   const navigate = useNavigate();
@@ -109,8 +99,10 @@ const DeploymentForm = () => {
   const sendForm = async (values) => {
     try {
       const response = await axios.post('http://localhost:8000/api/deployment/', values);
-
+  
       if (response.status === 200) {
+        // If successful, clear form data from localStorage
+        localStorage.removeItem('formValues');
         toast.success('Form submitted successfully');
         let yamlData = response.data.data;
         setYamlData(yamlData);
@@ -120,50 +112,68 @@ const DeploymentForm = () => {
       }
     } catch (error) {
       console.error('HTTP request failed:', error);
-      toast.error('An error occurred while submitting the form');
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.log(error.response.data);
+        console.log(error.response.status);
+        console.log(error.response.headers);
+        toast.error(`An error occurred while submitting the form: ${error.response.data.error}`);
+      } else if (error.request) {
+        // The request was made but no response was received
+        // `error.request` is an instance of XMLHttpRequest in the browser and an instance of
+        // http.ClientRequest in Node.js
+        console.log(error.request);
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.log('Error', error.message);
+      }
     }
   };
+  // Load form data from localStorage before rendering the form
+  let initialValues = {
+    applicationName: '',
+    applicationVersion: '',
+    microservices: [{
+      serviceName: '',
+      containerImage: '',
+      replicas: '',
+      cpu: '',
+      memory: '',
+      ports: '',
+      environmentVariables: [''],
+    }],
+  };
+
+  const savedFormValues = localStorage.getItem('formValues');
+  if (savedFormValues) {
+    initialValues = JSON.parse(savedFormValues);
+  }
+
+
 
   return (
     <div className="container">
       <h1 className="text-center"> Microservice Deployment Information </h1>
       <Formik
-        initialValues={{
-          applicationName: '',
-          applicationVersion: '',
-          microservices: [{
-            serviceName: '',
-            containerImage: '',
-            replicas: '',
-            cpu: '',
-            memory: '',
-            ports: '',
-            environmentVariables: [''],
-          }],
-        }}
+        initialValues={initialValues}
 
         validationSchema={validationSchema} // Provide the validation schema to Formik
 
         validate={validateMicroservices} // Provide The validation of microservice to Formik 
 
+        
+
         // validate={validateUniqueServiceNames} // Custom validation for unique service names
 
-        onSubmit={(values, { setSubmitting, resetForm }) => {
-          sendForm(values)
-            .then(data => {
-              console.log(data);  // print the response data
-              setSubmitting(false);
-              resetForm();
-            })
-            .catch(error => {
-              console.error('Form submission failed:', error);
-              setSubmitting(false);
-            });
-            
+        onSubmit={(values, actions) => {
+          sendForm(values);
+          actions.setSubmitting(false);
         }}
       >
         <Form method="post" action='/yaml-display'>
           {/* Application Information */}
+          <MyComponent />
           <div className="row">
             <div className="col-md-6">
               <fieldset>
@@ -236,6 +246,7 @@ const DeploymentForm = () => {
                     {/* CPU section */}
                     <div className="mb-3">
                       <label htmlFor={`microservices[${index}].cpu`} className="form-label">CPU</label>
+                      <small className="form-text text-muted"> Specify the maximum amount of CPU resources that this service can use, e.g., '2' </small>
                       <Field name={`microservices[${index}].cpu`} placeholder="CPU" type="number" className="form-control" />
                       <ErrorMessage name={`microservices[${index}].cpu`} component="div" className="text-danger" />
                     </div>
@@ -243,6 +254,7 @@ const DeploymentForm = () => {
                     {/* memory section */}
                     <div className="mb-3">
                       <label htmlFor={`microservices[${index}].memory`} className="form-label">Memory</label>
+                      <small className="form-text text-muted"> Specify the maximum amount of memory (RAM) that this service can use, e.g., '512 or 1024' </small>
                       <Field name={`microservices[${index}].memory`} placeholder="Memory" type="number" className="form-control" />
                       <ErrorMessage name={`microservices[${index}].memory`} component="div" className="text-danger" />
                     </div>
@@ -260,7 +272,7 @@ const DeploymentForm = () => {
                                   <div className="col">
                                     <Field
                                       name={`microservices[${index}].ports[${idx}]`}
-                                      placeholder="containerPort:hostPort"
+                                      placeholder="hostPort:containerPort"
                                       className="form-control"
                                     />
                                   </div>
@@ -329,6 +341,7 @@ const DeploymentForm = () => {
                     {/* Dependent Services */}
                     <div className="mb-3">
                       <label htmlFor={`microservices[${index}].dependentService`} className="form-label">Dependent Services</label>
+                      <small className="form-text text-muted"> List the names of other services that this service depends on.  </small>
                       <Field as="select" name={`microservices[${index}].dependentService`} className="form-control">
                         <option value="">None</option>
                         {values.microservices.map((microservice, microserviceIndex) => (
@@ -342,6 +355,36 @@ const DeploymentForm = () => {
                       <ErrorMessage name={`microservices[${index}].dependentService`} component="div" className="text-danger" />
                     </div>
 
+                    {/* Labels section */}
+                    <div className="mb-3">
+                      <label htmlFor={`microservices[${index}].labels`} className="form-label">Labels</label>
+                      <small className="form-text text-muted"> Provide additional metadata for this service using labels. </small>
+                      <Field name={`microservices[${index}].labels`} placeholder="Comma-separated labels" className="form-control" />
+                      <ErrorMessage name={`microservices[${index}].labels`} component="div" className="text-danger" />
+                    </div>
+
+                    {/* Restart policies section */}
+                    <div className="mb-3">
+                      <label htmlFor={`microservices[${index}].restartPolicy`} className="form-label">Restart Policy</label>
+                      <small className="form-text text-muted"> Choose how the system should handle service restarts. </small>
+                      <Field as="select" name={`microservices[${index}].restartPolicy`} className="form-control">
+                        <option value="">Select...</option>
+                        <option value="no">No</option>
+                        <option value="always">Always</option>
+                        <option value="on-failure">On Failure</option>
+                        <option value="unless-stopped">Unless Stopped</option>
+                      </Field>
+                      <ErrorMessage name={`microservices[${index}].restartPolicy`} component="div" className="text-danger" />
+                    </div>
+
+                    {/* Health checks section */}
+                    <div className="mb-3">
+                      <label htmlFor={`microservices[${index}].healthCheck`} className="form-label">Health Check</label>
+                      <small className="form-text text-muted"> Enter a command that the system can run to check the health of the service. </small>
+                      <Field name={`microservices[${index}].healthCheck`} placeholder="Health Check URL" className="form-control" />
+                      <ErrorMessage name={`microservices[${index}].healthCheck`} component="div" className="text-danger" />
+                    </div>
+
                     {/* Add more fields specific to each microservice */}
                     {/* ... */}
 
@@ -352,15 +395,15 @@ const DeploymentForm = () => {
                 ))}
 
                 <button type="button" onClick={() => push({
-                                                            serviceName: '',
-                                                            containerImage: '',
-                                                            replicas: '',
-                                                            cpu: '',
-                                                            memory: '',
-                                                            ports: '',
-                                                            environmentVariables: [''],
-                                                          })}
-                                                            className="btn btn-success">
+                        serviceName: '',
+                        containerImage: '',
+                        replicas: '',
+                        cpu: '',
+                        memory: '',
+                        ports: '',
+                        environmentVariables: [''],
+                      })}
+                        className="btn btn-success">
                   Add Microservice
                 </button>
               </>
