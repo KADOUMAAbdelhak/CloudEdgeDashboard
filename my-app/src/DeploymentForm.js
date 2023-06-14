@@ -54,17 +54,13 @@ const DeploymentForm = () => {
                 }),
             )
             .min(1, 'At least one port mapping is required'),
-          environmentVariables: Yup.array()
-            .of(
-              Yup.string()
-                .required('Environment variable is required')
-                .matches(/^([a-zA-Z_][a-zA-Z0-9_]*)=(\w+)$/, 'Environment variable must be in "KEY=VALUE" format'),
-            )
-            .min(1, 'At least one environment variable is required'), 
+          environmentVariables: Yup.string(), 
           dependentService: Yup.string(),
           labels: Yup.string(),
           restartPolicy: Yup.string().required('Restart policy is required'),
           healthCheck: Yup.string(),
+          networks: Yup.string(),
+          volumes: Yup.string(),
         })
       ),
   });
@@ -140,8 +136,12 @@ const DeploymentForm = () => {
       replicas: '',
       cpu: '',
       memory: '',
-      ports: '',
-      environmentVariables: [''],
+      ports: [],
+      environmentVariables: '',
+      restartPolicy: '',
+      healthCheck: '',
+      volumes: '',
+      networks: ''
     }],
   };
 
@@ -149,6 +149,17 @@ const DeploymentForm = () => {
   if (savedFormValues) {
     initialValues = JSON.parse(savedFormValues);
   }
+
+  const onSubmit = (values, actions) => {
+    // Transform environment variables from array to comma-separated string
+    values.microservices = values.microservices.map((ms) => ({
+      ...ms,
+      environmentVariables: ms.environmentVariables.join(','),
+    }));
+  
+    sendForm(values);
+    actions.setSubmitting(false);
+  };
 
 
 
@@ -313,28 +324,14 @@ const DeploymentForm = () => {
 
 
                     {/* Start of environment variables section */}
+                    {/* Start of environment variables section */}
                     <div className="mb-3">
                       <label htmlFor={`microservices[${index}].environmentVariables`} className="form-label">Environment Variables</label>
-                      <small className="form-text text-muted"> Enter the environment variable as "KEY=VALUE"</small>
-                      <FieldArray name={`microservices[${index}].environmentVariables`}>
-                        {({ push, remove }) => (
-                          <>
-                            {values.microservices[index].environmentVariables.map((_, subIndex) => (
-                              <div key={subIndex} className="d-flex align-items-center mb-2">
-                                <Field name={`microservices[${index}].environmentVariables[${subIndex}]`} placeholder="KEY=VALUE" className="form-control mr-2" />
-                                <ErrorMessage name={`microservices[${index}].environmentVariables[${subIndex}]`} component="div" className="text-danger" />
-                                <button type="button" onClick={() => remove(subIndex)} className="btn btn-danger ml-2">
-                                  <i className="fas fa-minus-circle"></i>
-                                </button>
-                              </div>
-                            ))}
-                            <button type="button" onClick={() => push('')} className="btn btn-success">
-                              <i className="fas fa-plus-circle"></i> Add Variable
-                            </button>
-                          </>
-                        )}
-                      </FieldArray>
+                      <small className="form-text text-muted"> Enter the environment variables as "KEY=VALUE,"</small>
+                      <Field name={`microservices[${index}].environmentVariables`} placeholder="KEY=VALUE," className="form-control" />
+                      <ErrorMessage name={`microservices[${index}].environmentVariables`} component="div" className="text-danger" />
                     </div>
+
 
 
 
@@ -385,8 +382,26 @@ const DeploymentForm = () => {
                       <ErrorMessage name={`microservices[${index}].healthCheck`} component="div" className="text-danger" />
                     </div>
 
+                    {/* Networks section */}
+                    <div className="mb-3">
+                      <label htmlFor={`microservices[${index}].networks`} className="form-label">Networks</label>
+                      <small className="form-text text-muted"> Enter the networks for this service. </small>
+                      <Field name={`microservices[${index}].networks`} placeholder="Networks" className="form-control" />
+                      <ErrorMessage name={`microservices[${index}].networks`} component="div" className="text-danger" />
+                    </div>
+
+                    {/* Volumes section */}
+                    <div className="mb-3">
+                      <label htmlFor={`microservices[${index}].volumes`} className="form-label">Volumes</label>
+                      <small className="form-text text-muted"> Enter the volume bindings for this service.</small>
+                      <Field name={`microservices[${index}].volumes`} placeholder="Volumes" className="form-control" />
+                      <ErrorMessage name={`microservices[${index}].volumes`} component="div" className="text-danger" />
+                    </div>
+
                     {/* Add more fields specific to each microservice */}
                     {/* ... */}
+                            
+                    
 
                     <button type="button" onClick={() => remove(index)} className="btn btn-danger">
                       Remove Microservice
@@ -400,8 +415,12 @@ const DeploymentForm = () => {
                         replicas: '',
                         cpu: '',
                         memory: '',
-                        ports: '',
-                        environmentVariables: [''],
+                        ports: [],
+                        environmentVariables: '',
+                        restartPolicy: '',
+                        healthCheck: '',
+                        volumes: '',
+                        networks: ''
                       })}
                         className="btn btn-success">
                   Add Microservice
