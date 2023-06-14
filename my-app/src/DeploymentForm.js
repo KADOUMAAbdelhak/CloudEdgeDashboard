@@ -136,8 +136,12 @@ const DeploymentForm = () => {
       replicas: '',
       cpu: '',
       memory: '',
-      ports: '',
+      ports: [],
       environmentVariables: '',
+      restartPolicy: '',
+      healthCheck: '',
+      volumes: '',
+      networks: ''
     }],
   };
 
@@ -411,8 +415,12 @@ const DeploymentForm = () => {
                         replicas: '',
                         cpu: '',
                         memory: '',
-                        ports: '',
-                        environmentVariables: [''],
+                        ports: [],
+                        environmentVariables: '',
+                        restartPolicy: '',
+                        healthCheck: '',
+                        volumes: '',
+                        networks: ''
                       })}
                         className="btn btn-success">
                   Add Microservice

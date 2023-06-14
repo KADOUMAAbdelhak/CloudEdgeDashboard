@@ -92,8 +92,14 @@ def process_data(data):
             service_data['depends_on'] = [ms['depends_on']]
 
         # Labels
+        # Labels
         if 'labels' in ms:
-            service_data['labels'] = ms['labels']
+            labelsArray = ms['labels'].split(",")
+            labels = {}
+            for label in labelsArray:
+                key, value = label.split("=")
+                labels[key.strip()] = value.strip()
+            service_data['labels'] = labels
 
         # Restart policy
         if 'restartPolicy' in ms:
@@ -102,12 +108,20 @@ def process_data(data):
         # Health checks
         if 'healthCheck' in ms:
             service_data['healthcheck'] = {
-                'test': ms['healthCheck'],
+                'test': ["CMD", "curl", "-f", ms['healthCheck']],
                 'interval': '1m',
                 'timeout': '10s',
                 'retries': 3,
                 'start_period': '30s'
             }
+        
+        # Volumes
+        if 'volumes' in ms:
+            service_data['volumes'] = [volume.strip() for volume in ms['volumes'].split(',')]
+
+        # Networks
+        if 'networks' in ms:
+            service_data['networks'] = [network.strip() for network in ms['networks'].split(',')]
 
         docker_compose_data['services'][ms['serviceName']] = service_data
 
@@ -232,8 +246,8 @@ def handle_yaml(request):
         dir_path = os.path.dirname(file_path)
         os.chdir(dir_path) # change directory
         # Get the state of the services
-        service_states = subprocess.check_output(["docker-compose", "ps"]).decode('utf-8')
+        # service_states = subprocess.check_output(["docker-compose", "ps"]).decode('utf-8')
 
-        return JsonResponse({'message': message, 'services': service_states})
+        return JsonResponse({'message': message})
     else:
         return JsonResponse({'error': 'Invalid request'}, status=400)
