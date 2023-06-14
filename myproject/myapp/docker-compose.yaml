@@ -4,10 +4,25 @@ services:
       replicas: 1
       resources:
         limits:
-          cpus: '2'
+          cpus: '1'
           memory: 512M
+    environment:
+      db: '50'
     image: nginx
     ports:
     - 8080:80
-    restart: 'no'
+    restart: always
+  ms2:
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+    environment:
+      hd: '30'
+    image: redis
+    ports:
+    - 9000:92
+    restart: always
 version: '3.8'

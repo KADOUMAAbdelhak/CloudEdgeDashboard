@@ -74,8 +74,14 @@ def process_data(data):
         }
 
         # Environment variables
-        if 'environment' in ms:
-            service_data['environment'] = ms['environment']
+        # Environment variables
+        if 'environmentVariables' in ms:
+            environmentVariablesArray = ms['environmentVariables'].split(",")
+            environmentVariables = {}
+            for variable in environmentVariablesArray:
+                key, value = variable.split("=")
+                environmentVariables[key.strip()] = value.strip()
+            service_data['environment'] = environmentVariables
 
         # Port mappings
         if 'ports' in ms:
