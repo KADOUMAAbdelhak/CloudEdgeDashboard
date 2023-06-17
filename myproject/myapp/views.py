@@ -64,7 +64,6 @@ def process_data(data):
 
         # Deployment settings
         service_data['deploy'] = {
-            'replicas': ms['replicas'],
             'resources': {
                 'limits': {
                     'cpus': str(ms['cpu']),
@@ -73,7 +72,6 @@ def process_data(data):
             }
         }
 
-        # Environment variables
         # Environment variables
         if 'environmentVariables' in ms:
             environmentVariablesArray = ms['environmentVariables'].split(",")
@@ -91,16 +89,6 @@ def process_data(data):
         if 'depends_on' in ms:
             service_data['depends_on'] = [ms['depends_on']]
 
-        # Labels
-        # Labels
-        if 'labels' in ms:
-            labelsArray = ms['labels'].split(",")
-            labels = {}
-            for label in labelsArray:
-                key, value = label.split("=")
-                labels[key.strip()] = value.strip()
-            service_data['labels'] = labels
-
         # Restart policy
         if 'restartPolicy' in ms:
             service_data['restart'] = ms['restartPolicy']
@@ -115,14 +103,6 @@ def process_data(data):
                 'start_period': '30s'
             }
         
-        # Volumes
-        if 'volumes' in ms:
-            service_data['volumes'] = [volume.strip() for volume in ms['volumes'].split(',')]
-
-        # Networks
-        if 'networks' in ms:
-            service_data['networks'] = [network.strip() for network in ms['networks'].split(',')]
-
         docker_compose_data['services'][ms['serviceName']] = service_data
 
     return docker_compose_data
@@ -140,8 +120,6 @@ def deploy_docker_compose(file_path):
         return
 
     os.chdir(dir_path)
-    subprocess.run(["docker-compose", "up", "-d"], check=True)
-
     # Run the Docker Compose command
     subprocess.run(["docker-compose", "up", "-d"], check=True)
 
@@ -162,8 +140,6 @@ def deployment(request):
     used_ports = set()
     if request.method == 'POST':
         form_data = json.loads(request.body.decode('utf-8'))
-
-        
         # Check if the images exist
         microservices = form_data.get('microservices', [])
         for service in microservices:
@@ -175,25 +151,18 @@ def deployment(request):
         # Check if port is free
             for port_mapping in service['ports']:
                 host_port = int(port_mapping.split(':')[0])  # split and take the host port
-
                 # Check if this port was used in the current service
                 if host_port in service_used_ports:
                     continue  # If the port was already used in this service, we don't need to check if it's free or add it to used_ports
-
                 # Check if this port was already used by another service
                 if host_port in used_ports:
                     return JsonResponse({"error": f"Port {host_port} was already assigned to another service."}, status=400)
-
-                
-
                 # Check if this port is free on the host system
                 if not is_port_free(host_port):
                     return JsonResponse({"error": f"Port {host_port} is not available on the host system."}, status=400)
-
                 used_ports.add(host_port)
                 service_used_ports.add(host_port)
 
-        
         # Check if env variables are valid
             if 'environment' in service:
                 for env_var in service['environment']:
@@ -204,9 +173,6 @@ def deployment(request):
         # If the images exist and the data is valid, convert it to YAML and return it as a response
         yaml_data = yaml.dump(form_data, Dumper=CustomDumper)
         return JsonResponse({"data": yaml_data}, status=200)
-    
-    elif request.method == 'GET':
-        return JsonResponse({"error": "GET method not supported for this endpoint."}, status=405)
     else:
         return JsonResponse({"error": "Invalid request method. Only POST is allowed."}, status=405)
 
