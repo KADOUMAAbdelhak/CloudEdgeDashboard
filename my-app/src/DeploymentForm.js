@@ -27,12 +27,6 @@ const DeploymentForm = () => {
   // Define validation schema using Yup
   
   const validationSchema = Yup.object().shape({
-    applicationName: Yup.string()
-      .required('Application Name is required')
-      .matches(/^[a-zA-Z0-9]+$/, 'Application Name must be one word and consist of alphanumeric characters only.'),
-    applicationVersion: Yup.string()
-      .required('Application Version is required')
-      .matches(/^(\d\.)?(\d\.)?(\*|\d)$/, 'Application Version must follow semantic versioning (x.y.z)'),
     microservices: Yup.array()
       .min(1, 'At least one microservice must be provided')
       .of(
@@ -40,7 +34,6 @@ const DeploymentForm = () => {
           serviceName: Yup.string().required('Service Name is required'),
           containerImage: Yup.string()
             .required('Container Image is required'),
-          replicas: Yup.number().required('Number of Replicas is required').positive('Number of Replicas must be positive').integer('Number of Replicas must be an integer'),
           cpu: Yup.string().required('CPU is required'),
           memory: Yup.string().required('Memory is required'),
           ports: Yup.array()
@@ -59,8 +52,6 @@ const DeploymentForm = () => {
           labels: Yup.string(),
           restartPolicy: Yup.string().required('Restart policy is required'),
           healthCheck: Yup.string(),
-          networks: Yup.string(),
-          volumes: Yup.string(),
         })
       ),
   });
@@ -128,12 +119,9 @@ const DeploymentForm = () => {
   };
   // Load form data from localStorage before rendering the form
   let initialValues = {
-    applicationName: '',
-    applicationVersion: '',
     microservices: [{
       serviceName: '',
       containerImage: '',
-      replicas: '',
       cpu: '',
       memory: '',
       ports: [],
@@ -168,14 +156,9 @@ const DeploymentForm = () => {
       <h1 className="text-center"> Microservice Deployment Information </h1>
       <Formik
         initialValues={initialValues}
-
         validationSchema={validationSchema} // Provide the validation schema to Formik
-
         validate={validateMicroservices} // Provide The validation of microservice to Formik 
-
-        
-
-        // validate={validateUniqueServiceNames} // Custom validation for unique service names
+        validateUniqueServiceNames={validateUniqueServiceNames} // Custom validation for unique service names
 
         onSubmit={(values, actions) => {
           sendForm(values);
@@ -183,42 +166,6 @@ const DeploymentForm = () => {
         }}
       >
         <Form method="post" action='/yaml-display'>
-          {/* Application Information */}
-          <MyComponent />
-          <div className="row">
-            <div className="col-md-6">
-              <fieldset>
-                <legend> Application Information </legend>
-
-                <div className="mb-3">
-                  <label htmlFor="applicationName" className="form-label">
-                    Application Name
-                  </label>
-                  <Field
-                    id="applicationName"
-                    name="applicationName"
-                    placeholder="Application Name"
-                    className="form-control"
-                  />
-                  <ErrorMessage name="applicationName" component="div" className="text-danger" />
-                </div>
-
-                <div className="mb-3">
-                  <label htmlFor="applicationVersion" className="form-label">
-                    Application Version
-                  </label>
-                  <Field
-                    id="applicationVersion"
-                    name="applicationVersion"
-                    placeholder="Application Version"
-                    className="form-control"
-                  />
-                  <ErrorMessage name="applicationVersion" component="div" className="text-danger" />
-                </div>
-              </fieldset>
-            </div>
-          </div>
-
           {/* Microservices */}
           <FieldArray validate={validateMicroservices} name="microservices">
             {({ push, remove, form: { values } }) => (
@@ -245,13 +192,6 @@ const DeploymentForm = () => {
                       <small className="form-text text-muted"> Please enter the Docker image name for your service, e.g., 'nginx:latest' </small>
                       <Field name={`microservices[${index}].containerImage`} placeholder="Container Image" className="form-control" />
                       <ErrorMessage name={`microservices[${index}].containerImage`} component="div" className="text-danger" />
-                    </div>
-
-                    {/* Replicas section */}
-                    <div className="mb-3">
-                      <label htmlFor={`microservices[${index}].replicas`} className="form-label">Number of Replicas</label>
-                      <Field name={`microservices[${index}].replicas`} placeholder="Number of Replicas" type="number" className="form-control" />
-                      <ErrorMessage name={`microservices[${index}].replicas`} component="div" className="text-danger" />
                     </div>
 
                     {/* CPU section */}
@@ -322,8 +262,6 @@ const DeploymentForm = () => {
                       </FieldArray>
                     </div>
 
-
-                    {/* Start of environment variables section */}
                     {/* Start of environment variables section */}
                     <div className="mb-3">
                       <label htmlFor={`microservices[${index}].environmentVariables`} className="form-label">Environment Variables</label>
@@ -331,9 +269,6 @@ const DeploymentForm = () => {
                       <Field name={`microservices[${index}].environmentVariables`} placeholder="KEY=VALUE," className="form-control" />
                       <ErrorMessage name={`microservices[${index}].environmentVariables`} component="div" className="text-danger" />
                     </div>
-
-
-
 
                     {/* Dependent Services */}
                     <div className="mb-3">
@@ -350,14 +285,6 @@ const DeploymentForm = () => {
                         ))}
                       </Field>
                       <ErrorMessage name={`microservices[${index}].dependentService`} component="div" className="text-danger" />
-                    </div>
-
-                    {/* Labels section */}
-                    <div className="mb-3">
-                      <label htmlFor={`microservices[${index}].labels`} className="form-label">Labels</label>
-                      <small className="form-text text-muted"> Provide additional metadata for this service using labels. </small>
-                      <Field name={`microservices[${index}].labels`} placeholder="Comma-separated labels" className="form-control" />
-                      <ErrorMessage name={`microservices[${index}].labels`} component="div" className="text-danger" />
                     </div>
 
                     {/* Restart policies section */}
@@ -382,27 +309,9 @@ const DeploymentForm = () => {
                       <ErrorMessage name={`microservices[${index}].healthCheck`} component="div" className="text-danger" />
                     </div>
 
-                    {/* Networks section */}
-                    <div className="mb-3">
-                      <label htmlFor={`microservices[${index}].networks`} className="form-label">Networks</label>
-                      <small className="form-text text-muted"> Enter the networks for this service. </small>
-                      <Field name={`microservices[${index}].networks`} placeholder="Networks" className="form-control" />
-                      <ErrorMessage name={`microservices[${index}].networks`} component="div" className="text-danger" />
-                    </div>
-
-                    {/* Volumes section */}
-                    <div className="mb-3">
-                      <label htmlFor={`microservices[${index}].volumes`} className="form-label">Volumes</label>
-                      <small className="form-text text-muted"> Enter the volume bindings for this service.</small>
-                      <Field name={`microservices[${index}].volumes`} placeholder="Volumes" className="form-control" />
-                      <ErrorMessage name={`microservices[${index}].volumes`} component="div" className="text-danger" />
-                    </div>
-
                     {/* Add more fields specific to each microservice */}
                     {/* ... */}
                             
-                    
-
                     <button type="button" onClick={() => remove(index)} className="btn btn-danger">
                       Remove Microservice
                     </button>
@@ -418,9 +327,7 @@ const DeploymentForm = () => {
                         ports: [],
                         environmentVariables: '',
                         restartPolicy: '',
-                        healthCheck: '',
-                        volumes: '',
-                        networks: ''
+                        healthCheck: ''
                       })}
                         className="btn btn-success">
                   Add Microservice
