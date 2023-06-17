@@ -36,21 +36,16 @@ const DeploymentForm = () => {
             .required('Container Image is required'),
           cpu: Yup.string().required('CPU is required'),
           memory: Yup.string().required('Memory is required'),
-          ports: Yup.array()
-            .of(
-              Yup.string()
-                .required('Port mapping is required')
-                .matches(/^(\d+):(\d+)$/, 'Port mapping must be in "hostPort:contianerPort" format')
-                .test('is-valid-port', 'Ports must be numbers between 1 and 65535', function(value) {
-                  const ports = value.split(':').map(Number);
-                  return ports.every(port => port > 0 && port <= 65535);
-                }),
-            )
-            .min(1, 'At least one port mapping is required'),
+          ports: Yup.string()
+          .required('Port mapping is required')
+          .matches(/^(\d+):(\d+)$/, 'Port mapping must be in "hostPort:containerPort" format')
+          .test('is-valid-port', 'Ports must be numbers between 1 and 65535', function(value) {
+              const ports = value.split(':').map(Number);
+              return ports.every(port => port > 0 && port <= 65535);
+          }),
           environmentVariables: Yup.string(), 
           dependentService: Yup.string(),
-          labels: Yup.string(),
-          restartPolicy: Yup.string().required('Restart policy is required'),
+          restartPolicy: Yup.string(),
           healthCheck: Yup.string(),
         })
       ),
@@ -60,6 +55,15 @@ const DeploymentForm = () => {
   // Inside your component...
   const navigate = useNavigate();
   const [yamlData, setYamlData] = useState('');
+  // State to control visibility of advanced fields
+  const [advancedFieldsVisible, setAdvancedFieldsVisible] = useState([]);
+  const toggleAdvancedFields = (index) => {
+    setAdvancedFieldsVisible((oldArray) => {
+      const newArray = [...oldArray];
+      newArray[index] = !newArray[index];
+      return newArray;
+    });
+  };
 
   // Minimum one microservice
   const validateMicroservices = (value) => {
@@ -127,9 +131,7 @@ const DeploymentForm = () => {
       ports: [],
       environmentVariables: '',
       restartPolicy: '',
-      healthCheck: '',
-      volumes: '',
-      networks: ''
+      healthCheck: ''
     }],
   };
 
@@ -137,18 +139,6 @@ const DeploymentForm = () => {
   if (savedFormValues) {
     initialValues = JSON.parse(savedFormValues);
   }
-
-  const onSubmit = (values, actions) => {
-    // Transform environment variables from array to comma-separated string
-    values.microservices = values.microservices.map((ms) => ({
-      ...ms,
-      environmentVariables: ms.environmentVariables.join(','),
-    }));
-  
-    sendForm(values);
-    actions.setSubmitting(false);
-  };
-
 
 
   return (
@@ -214,122 +204,78 @@ const DeploymentForm = () => {
                     <div className="mb-3">
                       <label htmlFor={`microservices[${index}].ports`} className="form-label">Ports</label>
                       <small className="form-text text-muted"> Enter the container port and the host port separated by a colon, e.g., '8080:80'</small>
-                      <FieldArray name={`microservices[${index}].ports`}>
-                        {({ insert, remove, push }) => (
-                          <div>
-                            {values.microservices[index].ports.length > 0 &&
-                              values.microservices[index].ports.map((port, idx) => (
-                                <div className="row" key={idx}>
-                                  <div className="col">
-                                    <Field
-                                      name={`microservices[${index}].ports[${idx}]`}
-                                      placeholder="hostPort:containerPort"
-                                      className="form-control"
-                                    />
-                                  </div>
-                                  <div className="col-auto">
-                                    <button
-                                      type="button"
-                                      className="btn btn-primary mb-3"
-                                      onClick={() => remove(idx)}
-                                    >
-                                      -
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="btn btn-primary mb-3"
-                                      onClick={() => insert(idx, '')}
-                                    >
-                                      +
-                                    </button>
-                                  </div>
-                                  <ErrorMessage
-                                    name={`microservices[${index}].ports[${idx}]`}
-                                    component="div"
-                                    className="text-danger"
-                                  />
-                                </div>
-                              ))}
-                            <button
-                              type="button"
-                              className="btn btn-primary"
-                              onClick={() => push('')}
-                            >
-                              Add new port mapping
-                            </button>
-                          </div>
-                        )}
-                      </FieldArray>
+                      <Field name={`microservices[${index}].ports`} placeholder="hostPort:containerPort" className="form-control" />
+                      <ErrorMessage name={`microservices[${index}].ports`} component="div" className="text-danger" />
                     </div>
 
-                    {/* Start of environment variables section */}
-                    <div className="mb-3">
-                      <label htmlFor={`microservices[${index}].environmentVariables`} className="form-label">Environment Variables</label>
-                      <small className="form-text text-muted"> Enter the environment variables as "KEY=VALUE,"</small>
-                      <Field name={`microservices[${index}].environmentVariables`} placeholder="KEY=VALUE," className="form-control" />
-                      <ErrorMessage name={`microservices[${index}].environmentVariables`} component="div" className="text-danger" />
-                    </div>
+                    
+                    {/* Advanced fields */}
+                    {advancedFieldsVisible[index] && (
+                      <>
+                        {/* Start of environment variables section */}
+                      <div className="mb-3">
+                        <label htmlFor={`microservices[${index}].environmentVariables`} className="form-label">Environment Variables</label>
+                        <small className="form-text text-muted"> Enter the environment variables as "KEY=VALUE,"</small>
+                        <Field name={`microservices[${index}].environmentVariables`} placeholder="KEY=VALUE," className="form-control" />
+                        <ErrorMessage name={`microservices[${index}].environmentVariables`} component="div" className="text-danger" />
+                      </div>
+                        {/* Dependent Services */}
+                        <div className="mb-3">
+                          <label htmlFor={`microservices[${index}].dependentService`} className="form-label">Dependent Services</label>
+                          <small className="form-text text-muted"> List the names of other services that this service depends on.  </small>
+                          <Field as="select" name={`microservices[${index}].dependentService`} className="form-control">
+                            <option value="">None</option>
+                            {values.microservices.map((microservice, microserviceIndex) => (
+                              index !== microserviceIndex && (
+                                <option key={microserviceIndex} value={microservice.serviceName}>
+                                  {microservice.serviceName}
+                                </option>
+                              )
+                            ))}
+                          </Field>
+                          <ErrorMessage name={`microservices[${index}].dependentService`} component="div" className="text-danger" />
+                        </div>
 
-                    {/* Dependent Services */}
-                    <div className="mb-3">
-                      <label htmlFor={`microservices[${index}].dependentService`} className="form-label">Dependent Services</label>
-                      <small className="form-text text-muted"> List the names of other services that this service depends on.  </small>
-                      <Field as="select" name={`microservices[${index}].dependentService`} className="form-control">
-                        <option value="">None</option>
-                        {values.microservices.map((microservice, microserviceIndex) => (
-                          index !== microserviceIndex && (
-                            <option key={microserviceIndex} value={microservice.serviceName}>
-                              {microservice.serviceName}
-                            </option>
-                          )
-                        ))}
-                      </Field>
-                      <ErrorMessage name={`microservices[${index}].dependentService`} component="div" className="text-danger" />
-                    </div>
+                        {/* Restart policies section */}
+                        <div className="mb-3">
+                          <label htmlFor={`microservices[${index}].restartPolicy`} className="form-label">Restart Policy</label>
+                          <small className="form-text text-muted"> Choose how the system should handle service restarts. </small>
+                          <Field as="select" name={`microservices[${index}].restartPolicy`} className="form-control">
+                            <option value="">Select...</option>
+                            <option value="no">No</option>
+                            <option value="always">Always</option>
+                            <option value="on-failure">On Failure</option>
+                            <option value="unless-stopped">Unless Stopped</option>
+                          </Field>
+                          <ErrorMessage name={`microservices[${index}].restartPolicy`} component="div" className="text-danger" />
+                        </div>
 
-                    {/* Restart policies section */}
-                    <div className="mb-3">
-                      <label htmlFor={`microservices[${index}].restartPolicy`} className="form-label">Restart Policy</label>
-                      <small className="form-text text-muted"> Choose how the system should handle service restarts. </small>
-                      <Field as="select" name={`microservices[${index}].restartPolicy`} className="form-control">
-                        <option value="">Select...</option>
-                        <option value="no">No</option>
-                        <option value="always">Always</option>
-                        <option value="on-failure">On Failure</option>
-                        <option value="unless-stopped">Unless Stopped</option>
-                      </Field>
-                      <ErrorMessage name={`microservices[${index}].restartPolicy`} component="div" className="text-danger" />
-                    </div>
+                        {/* Health checks section */}
+                        <div className="mb-3">
+                          <label htmlFor={`microservices[${index}].healthCheck`} className="form-label">Health Check</label>
+                          <small className="form-text text-muted"> Enter a command that the system can run to check the health of the service. </small>
+                          <Field name={`microservices[${index}].healthCheck`} placeholder="Health Check URL" className="form-control" />
+                          <ErrorMessage name={`microservices[${index}].healthCheck`} component="div" className="text-danger" />
+                        </div>
 
-                    {/* Health checks section */}
-                    <div className="mb-3">
-                      <label htmlFor={`microservices[${index}].healthCheck`} className="form-label">Health Check</label>
-                      <small className="form-text text-muted"> Enter a command that the system can run to check the health of the service. </small>
-                      <Field name={`microservices[${index}].healthCheck`} placeholder="Health Check URL" className="form-control" />
-                      <ErrorMessage name={`microservices[${index}].healthCheck`} component="div" className="text-danger" />
-                    </div>
-
-                    {/* Add more fields specific to each microservice */}
-                    {/* ... */}
+                        {/* Add more fields specific to each microservice */}
+                        {/* ... */}
+                      </>
+                    )}
                             
                     <button type="button" onClick={() => remove(index)} className="btn btn-danger">
                       Remove Microservice
                     </button>
+                    <button type="button" onClick={() => toggleAdvancedFields(index)} className="btn btn-light mt-2">
+                      {advancedFieldsVisible[index] ? 'Hide Advanced Fields' : 'Show Advanced Fields'}
+                    </button>
                   </div>
                 ))}
 
-                <button type="button" onClick={() => push({
-                        serviceName: '',
-                        containerImage: '',
-                        replicas: '',
-                        cpu: '',
-                        memory: '',
-                        ports: [],
-                        environmentVariables: '',
-                        restartPolicy: '',
-                        healthCheck: ''
-                      })}
-                        className="btn btn-success">
+                <button type="button" onClick={() => {
+                  push({...initialValues.microservices[0]});
+                  setAdvancedFieldsVisible((oldArray) => [...oldArray, false]);
+                }} className="btn btn-success">
                   Add Microservice
                 </button>
               </>
