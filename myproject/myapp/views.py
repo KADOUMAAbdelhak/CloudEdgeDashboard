@@ -167,6 +167,14 @@ def deployment(request):
                 for env_var in service['environment']:
                     if not is_valid_env_var(env_var):
                         return JsonResponse({"error": f"Invalid environment variable: {env_var}"}, status=400)
+        
+        # Check if CPU and memory limits are valid
+            cpu_limit = service.get('cpu')
+            memory_limit = service.get('memory')
+            if cpu_limit and (not isinstance(cpu_limit, int) or cpu_limit <= 0):
+                return JsonResponse({"error": f"Invalid CPU limit: {cpu_limit}"}, status=400)
+            if memory_limit and (not isinstance(memory_limit, int) or memory_limit <= 0):
+                return JsonResponse({"error": f"Invalid memory limit: {memory_limit}"}, status=400)
 
                 
         # If the images exist and the data is valid, convert it to YAML and return it as a response
@@ -211,8 +219,9 @@ def handle_yaml(request):
         dir_path = os.path.dirname(file_path)
         os.chdir(dir_path) # change directory
         # Get the state of the services
-        # service_states = subprocess.check_output(["docker-compose", "ps"]).decode('utf-8')
+        service_states = subprocess.check_output(["docker-compose", "ps"]).decode('utf-8')
+        service_logs = subprocess.check_output(["docker-compose", "logs"]).decode('utf-8')
 
-        return JsonResponse({'message': message})
+        return JsonResponse({'message': message, 'serviceStates': service_states, 'serviceLogs': service_logs})
     else:
         return JsonResponse({'error': 'Invalid request'}, status=400)

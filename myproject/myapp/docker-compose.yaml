@@ -1,12 +1,38 @@
 services:
-  ms1:
+  frontend-service:
     deploy:
       resources:
         limits:
           cpus: '1'
-          memory: 128M
-    image: nginx
+          memory: 512M
+    image: nginx:1.19
     ports:
-    - 8080:80
-    restart: 'no'
+    - 80:80
+  order-service:
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 256M
+    image: mysql:5.7
+    ports:
+    - 3306:3306
+  product-service:
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 256M
+    image: mongo:4.2-bionic
+    ports:
+    - 8080:8080
+  user-service:
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 256M
+    image: postgres:13
+    ports:
+    - 5432:5432
 version: '3.8'
