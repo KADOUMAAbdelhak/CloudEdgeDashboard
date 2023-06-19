@@ -4,28 +4,17 @@ services:
       resources:
         limits:
           cpus: '1'
-          memory: 128M
+          memory: 256M
     image: nginx
     ports:
-    - 80:80
-    restart: on-failure
+    - 8080:80
   redis:
     deploy:
       resources:
         limits:
           cpus: '1'
-          memory: 128M
+          memory: 256M
     image: redis
     ports:
-    - 6379:6379
-  web:
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 256M
-    image: node
-    ports:
-    - 81:5000
-    restart: on-failure
+    - 9000:90
 version: '3.8'
