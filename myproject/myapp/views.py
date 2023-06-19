@@ -220,8 +220,12 @@ def handle_yaml(request):
         os.chdir(dir_path) # change directory
         # Get the state of the services
         service_states = subprocess.check_output(["docker-compose", "ps"]).decode('utf-8')
+        print(service_states)
         service_logs = subprocess.check_output(["docker-compose", "logs"]).decode('utf-8')
+        
 
-        return JsonResponse({'message': message, 'serviceStates': service_states, 'serviceLogs': service_logs})
+        return JsonResponse({'message': message,
+                              'serviceStates': service_states,
+                              'serviceLogs': service_logs})
     else:
         return JsonResponse({'error': 'Invalid request'}, status=400)
