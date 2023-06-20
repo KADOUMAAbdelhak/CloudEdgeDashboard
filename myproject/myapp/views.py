@@ -73,7 +73,7 @@ def process_data(data):
         }
 
         # Environment variables
-        if 'environmentVariables' in ms:
+        if 'environmentVariables' in ms and ms['environmentVariables']:
             environmentVariablesArray = ms['environmentVariables'].split(",")
             environmentVariables = {}
             for variable in environmentVariablesArray:
@@ -81,20 +81,20 @@ def process_data(data):
                 environmentVariables[key.strip()] = value.strip()
             service_data['environment'] = environmentVariables
 
-        # Port mappings
-        if 'ports' in ms:
-            service_data['ports'] = ms['ports']
+        # Port mapping
+        if 'ports' in ms and ms['ports']:   # Changed from 'ports' to 'port'
+            service_data['ports'] = [ms['ports']]  # Wrap single port value into a list
 
         # Dependencies
-        if 'depends_on' in ms:
+        if 'depends_on' in ms and ms['depends_on']:
             service_data['depends_on'] = [ms['depends_on']]
 
         # Restart policy
-        if 'restartPolicy' in ms:
+        if 'restartPolicy' in ms and ms['restartPolicy']:
             service_data['restart'] = ms['restartPolicy']
 
         # Health checks
-        if 'healthCheck' in ms:
+        if 'healthCheck' in ms and ms['healthCheck']:
             service_data['healthcheck'] = {
                 'test': ["CMD", "curl", "-f", ms['healthCheck']],
                 'interval': '1m',
@@ -149,25 +149,32 @@ def deployment(request):
                 return JsonResponse({"error": f"Image {image_name} does not exist."}, status=400)
             
         # Check if port is free
-            for port_mapping in service['ports']:
-                host_port = int(port_mapping.split(':')[0])  # split and take the host port
-                # Check if this port was used in the current service
-                if host_port in service_used_ports:
-                    continue  # If the port was already used in this service, we don't need to check if it's free or add it to used_ports
-                # Check if this port was already used by another service
-                if host_port in used_ports:
-                    return JsonResponse({"error": f"Port {host_port} was already assigned to another service."}, status=400)
-                # Check if this port is free on the host system
-                if not is_port_free(host_port):
-                    return JsonResponse({"error": f"Port {host_port} is not available on the host system."}, status=400)
-                used_ports.add(host_port)
-                service_used_ports.add(host_port)
+            port_mapping = service['ports']  # notice it's 'port' now, not 'ports'
+            host_port = int(port_mapping.split(':')[0])  # split and take the host port
+
+            # Check if this port was already used by another service
+            if host_port in used_ports:
+                return JsonResponse({"error": f"Port {host_port} was already assigned to another service."}, status=400)
+
+            # Check if this port is free on the host system
+            if not is_port_free(host_port):
+                return JsonResponse({"error": f"Port {host_port} is not available on the host system."}, status=400)
+
+            used_ports.add(host_port)
 
         # Check if env variables are valid
             if 'environment' in service:
                 for env_var in service['environment']:
                     if not is_valid_env_var(env_var):
                         return JsonResponse({"error": f"Invalid environment variable: {env_var}"}, status=400)
+        
+        # Check if CPU and memory limits are valid
+            cpu_limit = service.get('cpu')
+            memory_limit = service.get('memory')
+            if cpu_limit and (not isinstance(cpu_limit, int) or cpu_limit <= 0):
+                return JsonResponse({"error": f"Invalid CPU limit: {cpu_limit}"}, status=400)
+            if memory_limit and (not isinstance(memory_limit, int) or memory_limit <= 0):
+                return JsonResponse({"error": f"Invalid memory limit: {memory_limit}"}, status=400)
 
                 
         # If the images exist and the data is valid, convert it to YAML and return it as a response
@@ -212,7 +219,10 @@ def handle_yaml(request):
         dir_path = os.path.dirname(file_path)
         os.chdir(dir_path) # change directory
         # Get the state of the services
-        # service_states = subprocess.check_output(["docker-compose", "ps"]).decode('utf-8')
+        service_states = subprocess.check_output(["docker-compose", "ps"]).decode('utf-8')
+        print(service_states)
+        # service_logs = subprocess.check_output(["docker-compose", "logs"]).decode('utf-8')
+        # print(service_logs)
 
         return JsonResponse({'message': message})
     else:

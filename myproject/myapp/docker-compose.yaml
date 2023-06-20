@@ -4,21 +4,17 @@ services:
       resources:
         limits:
           cpus: '1'
-          memory: 128M
-    environment:
-      DB: '50'
-    healthcheck:
-      interval: 1m
-      retries: 3
-      start_period: 30s
-      test:
-      - CMD
-      - curl
-      - -f
-      - ''
-      timeout: 10s
+          memory: 256M
     image: nginx
     ports:
     - 8080:80
-    restart: always
+  redis:
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 256M
+    image: redis
+    ports:
+    - 9000:90
 version: '3.8'
